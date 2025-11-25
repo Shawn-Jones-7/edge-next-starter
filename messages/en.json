@@ -1,0 +1,132 @@
+{
+  "common": {
+    "companyName": "B2B Enterprise",
+    "backHome": "Back Home",
+    "learnMore": "Learn More",
+    "contactUs": "Contact Us",
+    "getInTouch": "Get in Touch",
+    "submit": "Submit",
+    "sending": "Sending...",
+    "cancel": "Cancel",
+    "loading": "Loading..."
+  },
+  "nav": {
+    "home": "Home",
+    "products": "Products",
+    "services": "Services",
+    "solutions": "Solutions",
+    "about": "About",
+    "contact": "Contact"
+  },
+  "home": {
+    "title": "Welcome to Our Company",
+    "subtitle": "Your trusted B2B partner for enterprise solutions",
+    "products": {
+      "title": "Products",
+      "description": "Explore our comprehensive product catalog"
+    },
+    "services": {
+      "title": "Services",
+      "description": "Professional services tailored to your needs"
+    },
+    "solutions": {
+      "title": "Solutions",
+      "description": "End-to-end solutions for your business challenges"
+    },
+    "support": {
+      "title": "Support",
+      "description": "24/7 dedicated support for our partners"
+    }
+  },
+  "contact": {
+    "title": "Contact Us",
+    "subtitle": "Get in touch with our team",
+    "description": "We'd love to hear from you. Fill out the form below and we'll get back to you as soon as possible.",
+    "form": {
+      "name": "Name",
+      "namePlaceholder": "Your full name",
+      "nameRequired": "Name is required",
+      "email": "Email",
+      "emailPlaceholder": "your@email.com",
+      "emailRequired": "Email is required",
+      "emailInvalid": "Please enter a valid email address",
+      "phone": "Phone",
+      "phonePlaceholder": "Your phone number (optional)",
+      "company": "Company",
+      "companyPlaceholder": "Your company name (optional)",
+      "subject": "Subject",
+      "subjectPlaceholder": "Select a topic",
+      "subjectRequired": "Please select a subject",
+      "subjectOptions": {
+        "product": "Product Inquiry",
+        "support": "Technical Support",
+        "partnership": "Business Partnership",
+        "pricing": "Pricing & Quotation",
+        "other": "Other"
+      },
+      "message": "Message",
+      "messagePlaceholder": "Tell us about your needs...",
+      "messageRequired": "Message is required",
+      "messageMinLength": "Message must be at least 10 characters",
+      "submit": "Send Message",
+      "sending": "Sending..."
+    },
+    "success": {
+      "title": "Message Sent!",
+      "description": "Thank you for contacting us. We'll get back to you within 24 hours."
+    },
+    "error": {
+      "title": "Failed to Send",
+      "description": "There was a problem sending your message. Please try again later.",
+      "validation": "Please fill in all required fields correctly."
+    }
+  },
+  "footer": {
+    "copyright": "© {year} B2B Enterprise. All rights reserved.",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service"
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "lastUpdated": "Last updated: {date}"
+  },
+  "terms": {
+    "title": "Terms of Service",
+    "lastUpdated": "Last updated: {date}"
+  },
+  "upload": {
+    "title": "Upload a File to R2",
+    "selectFile": "Select file(s)",
+    "upload": "Upload",
+    "uploading": "Uploading...",
+    "success": "Uploaded successfully",
+    "preview": "Preview",
+    "error": {
+      "noFile": "Please choose file(s)",
+      "failed": "Upload failed"
+    },
+    "login": "Go to Login"
+  },
+  "metadata": {
+    "home": {
+      "title": "B2B Enterprise - Enterprise Solutions",
+      "description": "Your trusted B2B partner for enterprise solutions"
+    },
+    "contact": {
+      "title": "Contact Us - B2B Enterprise",
+      "description": "Get in touch with our team for inquiries and support"
+    },
+    "privacy": {
+      "title": "Privacy Policy - B2B Enterprise",
+      "description": "Learn how we collect, use, and protect your personal information"
+    },
+    "terms": {
+      "title": "Terms of Service - B2B Enterprise",
+      "description": "Read our terms and conditions for using the service"
+    },
+    "upload": {
+      "title": "Upload - B2B Enterprise",
+      "description": "Upload files to our cloud storage"
+    }
+  }
+}

@@ -1,0 +1,132 @@
+{
+  "common": {
+    "companyName": "B2B 企业",
+    "backHome": "返回首页",
+    "learnMore": "了解更多",
+    "contactUs": "联系我们",
+    "getInTouch": "立即咨询",
+    "submit": "提交",
+    "sending": "发送中...",
+    "cancel": "取消",
+    "loading": "加载中..."
+  },
+  "nav": {
+    "home": "首页",
+    "products": "产品",
+    "services": "服务",
+    "solutions": "解决方案",
+    "about": "关于我们",
+    "contact": "联系我们"
+  },
+  "home": {
+    "title": "欢迎来到我们公司",
+    "subtitle": "您值得信赖的企业解决方案合作伙伴",
+    "products": {
+      "title": "产品",
+      "description": "探索我们全面的产品目录"
+    },
+    "services": {
+      "title": "服务",
+      "description": "为您量身定制的专业服务"
+    },
+    "solutions": {
+      "title": "解决方案",
+      "description": "针对您业务挑战的端到端解决方案"
+    },
+    "support": {
+      "title": "支持",
+      "description": "为合作伙伴提供 7×24 小时专属支持"
+    }
+  },
+  "contact": {
+    "title": "联系我们",
+    "subtitle": "与我们的团队取得联系",
+    "description": "我们期待收到您的来信。请填写以下表单，我们会尽快回复您。",
+    "form": {
+      "name": "姓名",
+      "namePlaceholder": "请输入您的姓名",
+      "nameRequired": "请输入姓名",
+      "email": "邮箱",
+      "emailPlaceholder": "your@email.com",
+      "emailRequired": "请输入邮箱",
+      "emailInvalid": "请输入有效的邮箱地址",
+      "phone": "电话",
+      "phonePlaceholder": "请输入您的电话号码（可选）",
+      "company": "公司",
+      "companyPlaceholder": "请输入您的公司名称（可选）",
+      "subject": "主题",
+      "subjectPlaceholder": "请选择咨询主题",
+      "subjectRequired": "请选择咨询主题",
+      "subjectOptions": {
+        "product": "产品咨询",
+        "support": "技术支持",
+        "partnership": "商务合作",
+        "pricing": "价格询问",
+        "other": "其他"
+      },
+      "message": "留言",
+      "messagePlaceholder": "请告诉我们您的需求...",
+      "messageRequired": "请输入留言内容",
+      "messageMinLength": "留言内容至少需要 10 个字符",
+      "submit": "发送消息",
+      "sending": "发送中..."
+    },
+    "success": {
+      "title": "消息已发送！",
+      "description": "感谢您的联系，我们将在 24 小时内回复您。"
+    },
+    "error": {
+      "title": "发送失败",
+      "description": "发送消息时出现问题，请稍后重试。",
+      "validation": "请正确填写所有必填字段。"
+    }
+  },
+  "footer": {
+    "copyright": "© {year} B2B 企业。保留所有权利。",
+    "privacy": "隐私政策",
+    "terms": "服务条款"
+  },
+  "privacy": {
+    "title": "隐私政策",
+    "lastUpdated": "最后更新：{date}"
+  },
+  "terms": {
+    "title": "服务条款",
+    "lastUpdated": "最后更新：{date}"
+  },
+  "upload": {
+    "title": "上传文件到 R2",
+    "selectFile": "选择文件",
+    "upload": "上传",
+    "uploading": "上传中...",
+    "success": "上传成功",
+    "preview": "预览",
+    "error": {
+      "noFile": "请选择文件",
+      "failed": "上传失败"
+    },
+    "login": "去登录"
+  },
+  "metadata": {
+    "home": {
+      "title": "B2B 企业 - 企业解决方案",
+      "description": "您值得信赖的企业解决方案合作伙伴"
+    },
+    "contact": {
+      "title": "联系我们 - B2B 企业",
+      "description": "联系我们的团队进行咨询和支持"
+    },
+    "privacy": {
+      "title": "隐私政策 - B2B 企业",
+      "description": "了解我们如何收集、使用和保护您的个人信息"
+    },
+    "terms": {
+      "title": "服务条款 - B2B 企业",
+      "description": "阅读我们的服务使用条款"
+    },
+    "upload": {
+      "title": "上传 - B2B 企业",
+      "description": "上传文件到我们的云存储"
+    }
+  }
+}
