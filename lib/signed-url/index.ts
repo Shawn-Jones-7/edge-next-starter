@@ -17,7 +17,7 @@ export async function generateSignedUrl(
   const message = `${key}:${expires}`;
 
   // Use Web Crypto API to create HMAC-SHA256 signature
-  const secret = process.env.NEXTAUTH_SECRET || 'default-secret';
+  const secret = process.env.SIGNING_SECRET || 'default-secret';
   const encoder = new TextEncoder();
   const keyData = encoder.encode(secret);
   const messageData = encoder.encode(message);

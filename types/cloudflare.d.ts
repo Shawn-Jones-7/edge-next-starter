@@ -54,13 +54,8 @@ declare global {
       // Database connection string (for Prisma)
       DATABASE_URL?: string;
 
-      // NextAuth configuration
-      NEXTAUTH_SECRET?: string;
-      NEXTAUTH_URL?: string;
-
-      // OAuth providers
-      GOOGLE_CLIENT_ID?: string;
-      GOOGLE_CLIENT_SECRET?: string;
+      // Signing secret for signed URLs
+      SIGNING_SECRET?: string;
 
       // Cloudflare deployment related
       CLOUDFLARE_ACCOUNT_ID?: string;
