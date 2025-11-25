@@ -4,71 +4,47 @@ import { z } from 'zod';
  * Environment variable schema definition
  * Use zod to validate environment variables with type safety
  */
-const envSchema = z
-  .object({
-    // Node environment
-    NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+const envSchema = z.object({
+  // Node environment
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 
-    // NextAuth configuration
-    NEXTAUTH_SECRET: z.string().min(1, 'NEXTAUTH_SECRET is required').default('dev-secret'),
-    NEXTAUTH_URL: z.string().url().optional(),
+  // Rate limit configuration
+  RATE_LIMIT_ENABLED: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((val) => val === 'true'),
+  RATE_LIMIT_MAX_REQUESTS: z.coerce.number().min(1).max(10000).default(100),
+  RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().min(1).max(3600).default(60),
 
-    // OAuth provider configuration
-    GOOGLE_CLIENT_ID: z.string().min(1, 'GOOGLE_CLIENT_ID must be a non-empty string').optional(),
-    GOOGLE_CLIENT_SECRET: z
-      .string()
-      .min(1, 'GOOGLE_CLIENT_SECRET must be a non-empty string')
-      .optional(),
+  // Cloudflare Analytics configuration
+  ANALYTICS_ENABLED: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((val) => val === 'true'),
+  // Analytics backend selection: log|kv|d1|engine
+  ANALYTICS_SINK: z.enum(['log', 'kv', 'd1', 'engine']).default('log'),
 
-    // Rate limit configuration
-    RATE_LIMIT_ENABLED: z
-      .enum(['true', 'false'])
-      .default('true')
-      .transform((val) => val === 'true'),
-    RATE_LIMIT_MAX_REQUESTS: z.coerce.number().min(1).max(10000).default(100),
-    RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().min(1).max(3600).default(60),
+  // Logging configuration
+  LOG_LEVEL: z.enum(['DEBUG', 'INFO', 'WARN', 'ERROR']).default('INFO'),
+  LOG_FORMAT: z.enum(['json', 'pretty']).default('json'),
+  LOG_INCLUDE_TIMESTAMP: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((val) => val === 'true'),
 
-    // Cloudflare Analytics configuration
-    ANALYTICS_ENABLED: z
-      .enum(['true', 'false'])
-      .default('true')
-      .transform((val) => val === 'true'),
-    // Analytics backend selection: log|kv|d1|engine
-    ANALYTICS_SINK: z.enum(['log', 'kv', 'd1', 'engine']).default('log'),
+  // Database configuration
+  DATABASE_QUERY_TIMEOUT: z.coerce.number().min(1000).max(30000).default(5000),
 
-    // Logging configuration
-    LOG_LEVEL: z.enum(['DEBUG', 'INFO', 'WARN', 'ERROR']).default('INFO'),
-    LOG_FORMAT: z.enum(['json', 'pretty']).default('json'),
-    LOG_INCLUDE_TIMESTAMP: z
-      .enum(['true', 'false'])
-      .default('true')
-      .transform((val) => val === 'true'),
+  // Cache configuration
+  CACHE_DEFAULT_TTL: z.coerce.number().min(1).max(86400).default(3600),
 
-    // Database configuration
-    DATABASE_QUERY_TIMEOUT: z.coerce.number().min(1000).max(30000).default(5000),
-
-    // Cache configuration
-    CACHE_DEFAULT_TTL: z.coerce.number().min(1).max(86400).default(3600),
-
-    // Monitoring configuration
-    ENABLE_PERFORMANCE_MONITORING: z
-      .enum(['true', 'false'])
-      .default('true')
-      .transform((val) => val === 'true'),
-    SLOW_QUERY_THRESHOLD_MS: z.coerce.number().min(100).max(10000).default(1000),
-  })
-  .superRefine((value, ctx) => {
-    if (
-      (value.GOOGLE_CLIENT_ID && !value.GOOGLE_CLIENT_SECRET) ||
-      (!value.GOOGLE_CLIENT_ID && value.GOOGLE_CLIENT_SECRET)
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be provided together',
-        path: ['GOOGLE_CLIENT_ID'],
-      });
-    }
-  });
+  // Monitoring configuration
+  ENABLE_PERFORMANCE_MONITORING: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((val) => val === 'true'),
+  SLOW_QUERY_THRESHOLD_MS: z.coerce.number().min(100).max(10000).default(1000),
+});
 
 /**
  * Optional environment variable schema (needed only in specific environments)
@@ -99,23 +75,7 @@ export type FullEnv = z.infer<typeof fullEnvSchema>;
  */
 function validateEnv(): Env {
   try {
-    const parsed = envSchema.parse(process.env);
-    const isCI = process.env.CI === 'true';
-    const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build';
-
-    // Only validate NEXTAUTH_SECRET in production runtime (not during CI builds)
-    if (
-      parsed.NEXTAUTH_SECRET === 'dev-secret' &&
-      parsed.NODE_ENV === 'production' &&
-      !isCI &&
-      !isBuildTime
-    ) {
-      console.error(
-        '❌ NEXTAUTH_SECRET is using the default development value. Please set a secure secret in production.'
-      );
-      throw new Error('NEXTAUTH_SECRET must be configured for production environments');
-    }
-    return parsed;
+    return envSchema.parse(process.env);
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('❌ Environment variable validation failed:');
