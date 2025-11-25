@@ -19,16 +19,8 @@
     "alwaysStrict": true,
 
     // exactOptionalPropertyTypes 暂时关闭
-    // 原因：需要修复 38+ 个类型错误（主要在 analytics、middleware、auth 相关代码）
+    // 原因：需要修复类型错误（主要在 analytics、middleware 相关代码）
     // 这个选项要求严格区分 { foo?: string } 和 { foo: string | undefined }
-    // TODO: 逐步修复以下文件后重新启用：
-    //   - lib/analytics/index.ts (7处)
-    //   - lib/api/middleware.ts (4处)
-    //   - lib/auth/adapter.ts (3处)
-    //   - lib/auth/config.ts (3处)
-    //   - repositories/post.repository.ts (2处)
-    //   - app/api/posts/route.ts (3处)
-    //   - 其他文件 (16处)
     // 参考: https://www.typescriptlang.org/tsconfig#exactOptionalPropertyTypes
     // "exactOptionalPropertyTypes": true,
 

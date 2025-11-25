@@ -11,7 +11,7 @@ API 路由 (app/api/*)
     ↓ 业务逻辑 + 验证
 Repository 层 (repositories/*)
     ↓ 数据库操作 + 异常处理
-Prisma Client (lib/db/client.ts)
+Database Client (lib/db/client.ts)
     ↓
 D1 Database
 ```
@@ -28,11 +28,10 @@ D1 Database
 ```
 repositories/
 ├── index.ts                 # Repository 工厂与导出
-├── user.repository.ts       # 用户数据操作
-└── post.repository.ts       # 文章数据操作
+└── lead.repository.ts       # 询盘/线索数据操作
 
 lib/db/
-└── client.ts                # Prisma 客户端（单例）
+└── client.ts                # 数据库客户端
 ```
 
 ## Repository 示例
@@ -40,24 +39,50 @@ lib/db/
 ### 创建 Repository
 
 ```typescript
-// repositories/user.repository.ts
-import { PrismaClient } from '@prisma/client';
-
+// repositories/lead.repository.ts
 import { DatabaseQueryError } from '@/lib/errors';
 
-export class UserRepository {
-  constructor(private prisma: PrismaClient) {}
+export interface Lead {
+  id: number;
+  name: string;
+  email: string;
+  phone?: string;
+  company?: string;
+  subject?: string;
+  message: string;
+  status: string;
+  createdAt: number;
+}
+
+export class LeadRepository {
+  constructor(private db: D1Database) {}
 
   /**
-   * 查询所有用户（仅数据库操作）
+   * 创建新询盘
    */
-  async findAll(orderBy: 'asc' | 'desc' = 'desc') {
+  async create(data: Omit<Lead, 'id' | 'createdAt'>): Promise<Lead> {
     try {
-      return await this.prisma.user.findMany({
-        orderBy: { createdAt: orderBy },
-      });
+      const now = Date.now();
+      const result = await this.db
+        .prepare(
+          `INSERT INTO leads (name, email, phone, company, subject, message, status, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+        .bind(
+          data.name,
+          data.email,
+          data.phone || null,
+          data.company || null,
+          data.subject || null,
+          data.message,
+          data.status || 'new',
+          now
+        )
+        .run();
+
+      return { ...data, id: result.meta.last_row_id, createdAt: now } as Lead;
     } catch (error) {
-      throw new DatabaseQueryError('Failed to fetch users', error);
+      throw new DatabaseQueryError('Failed to create lead', error);
     }
   }
 
@@ -66,8 +91,11 @@ export class UserRepository {
    */
   async existsByEmail(email: string): Promise<boolean> {
     try {
-      const count = await this.prisma.user.count({ where: { email } });
-      return count > 0;
+      const result = await this.db
+        .prepare('SELECT COUNT(*) as count FROM leads WHERE email = ?')
+        .bind(email)
+        .first<{ count: number }>();
+      return (result?.count || 0) > 0;
     } catch (error) {
       throw new DatabaseQueryError('Failed to check email existence', error);
     }
@@ -78,33 +106,27 @@ export class UserRepository {
 ### 在 API 路由中使用
 
 ```typescript
-// app/api/users/route.ts
-import { withRepositories } from '@/lib/api';
+// app/api/contact/route.ts
+import { ValidationError } from '@/lib/errors';
+import { LeadRepository } from '@/repositories/lead.repository';
 
 export async function POST(request: NextRequest) {
-  return withRepositories(request, async (repos) => {
-    // 1) 解析请求
-    const { email, name } = await request.json();
+  // 1) 解析请求
+  const { name, email, message } = await request.json();
 
-    // 2) 业务验证
-    if (!email) throw new ValidationError('Email is required');
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) throw new ValidationError('Invalid email format');
+  // 2) 业务验证
+  if (!email) throw new ValidationError('Email is required');
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) throw new ValidationError('Invalid email format');
 
-    // 3) 冲突检查
-    if (await repos.users.existsByEmail(email)) {
-      throw new ResourceAlreadyExistsError('User with this email');
-    }
+  // 3) 获取数据库连接
+  const db = getCloudflareContext().env.DB;
+  const leadRepo = new LeadRepository(db);
 
-    // 4) 通过 Repository 进行数据库操作
-    const user = await repos.users.create({ email, name });
+  // 4) 通过 Repository 进行数据库操作
+  const lead = await leadRepo.create({ name, email, message, status: 'new' });
 
-    // 5) 业务侧缓存管理
-    const cache = createCacheClient();
-    await cache?.delete('users:all');
-
-    return createdResponse(user, 'User created successfully');
-  });
+  return Response.json({ success: true, data: lead });
 }
 ```
 
@@ -116,8 +138,7 @@ export async function POST(request: NextRequest) {
 findById(id: number)
 findByEmail(email: string)
 findAll(options?)
-findByUserId(userId: number)
-findByIdWithPosts(id: number)
+findByStatus(status: string)
 exists(id: number): Promise<boolean>
 existsByEmail(email: string): Promise<boolean>
 count(options?): Promise<number>
@@ -129,8 +150,7 @@ count(options?): Promise<number>
 create(data: CreateData)
 update(id: number, data: UpdateData)
 delete(id: number)
-publish(id: number)      // 发布
-unpublish(id: number)    // 取消发布
+updateStatus(id: number, status: string)
 ```
 
 ## 异常处理规范
@@ -142,9 +162,12 @@ unpublish(id: number)    // 取消发布
 ```typescript
 async findById(id: number) {
   try {
-    return await this.prisma.user.findUnique({ where: { id } });
+    return await this.db
+      .prepare('SELECT * FROM leads WHERE id = ?')
+      .bind(id)
+      .first<Lead>();
   } catch (error) {
-    throw new DatabaseQueryError(`Failed to fetch user with id ${id}`, error);
+    throw new DatabaseQueryError(`Failed to fetch lead with id ${id}`, error);
   }
 }
 ```
@@ -155,141 +178,7 @@ async findById(id: number) {
 
 ```typescript
 if (!email) throw new ValidationError('Email is required');
-if (!user) throw new ResourceNotFoundError('User');
-if (exists) throw new ResourceAlreadyExistsError('User with this email');
-```
-
-## 数据映射
-
-Repository 可进行简单映射，但避免复杂业务：
-
-```typescript
-// ✅ 简单映射
-async create(data: { email: string; name?: string }) {
-  return await this.prisma.user.create({
-    data: { email: data.email, name: data.name || null },
-  });
-}
-
-// ❌ 复杂业务（应在 API 层）
-async create(data: { email: string; name?: string }) {
-  if (!this.isValidEmail(data.email)) throw new ValidationError('Invalid email');
-  const isPremium = this.calculateUserTier(data);
-  return await this.prisma.user.create({ data: { ...data, isPremium } });
-}
-```
-
-## 使用 Repository Factory
-
-提供统一访问入口：
-
-```typescript
-// Usage
-import { createRepositories } from '@/repositories';
-
-// repositories/index.ts
-export class RepositoryFactory {
-  constructor(private prisma: PrismaClient) {}
-  get users(): UserRepository {
-    return new UserRepository(this.prisma);
-  }
-  get posts(): PostRepository {
-    return new PostRepository(this.prisma);
-  }
-}
-
-const repos = createRepositories(prisma);
-const users = await repos.users.findAll();
-const posts = await repos.posts.findByUserId(1);
-```
-
-## withRepositories 包装器
-
-减少重复初始化代码：
-
-```typescript
-// lib/api/database.ts
-export async function withRepositories<T>(
-  request: NextRequest,
-  handler: (repos: RepositoryFactory) => Promise<NextResponse<T>>
-): Promise<NextResponse<T>>;
-```
-
-### 数据库连接复用
-
-**重要:** 内部使用 Prisma 单例：
-
-```typescript
-let prismaClient: PrismaClient | null = null;
-export function createPrismaClient(): PrismaClient | null {
-  if (prismaClient) return prismaClient; // 复用
-  prismaClient = new PrismaClient({ adapter }); // 创建并缓存
-  return prismaClient;
-}
-```
-
-**为什么?** 在 Cloudflare Workers Edge Runtime：
-
-1. 每个 isolate 拥有独立全局作用域
-2. 同一 isolate 内请求复用同一 PrismaClient
-3. 避免每次请求新建连接，显著提升性能
-4. D1 adapter 管理连接，无需手动连接池
-
-**性能对比:**
-
-- ❌ 旧方案：每请求新建 PrismaClient → ~50–100ms
-- ✅ 新方案：复用 PrismaClient → ~0–5ms
-
-### 优势
-
-1. 自动初始化（Prisma + Repository 工厂）
-2. 连接复用（单例）
-3. 统一错误处理
-4. 减少重复代码
-5. 类型安全
-6. 集成请求日志/错误处理
-
-### 使用示例
-
-```typescript
-// 旧方式：手动初始化
-export async function GET(request: NextRequest) {
-  return withMiddleware(request, async () => {
-    const prisma = createPrismaClient();
-    if (!prisma) throw new DatabaseConnectionError('Database not available');
-    const repos = createRepositories(prisma);
-    const users = await repos.users.findAll();
-    return successResponse(users);
-  });
-}
-
-// 新方式：withRepositories
-export async function GET(request: NextRequest) {
-  return withRepositories(request, async (repos) => {
-    const users = await repos.users.findAll();
-    return successResponse(users);
-  });
-}
-```
-
-### 完整示例（分页）
-
-```typescript
-export async function GET(request: NextRequest) {
-  return withRepositories(request, async (repos) => {
-    const p = request.nextUrl.searchParams;
-    const page = parseInt(p.get('page') || '1', 10);
-    const limit = parseInt(p.get('limit') || '10', 10);
-    if (page < 1 || limit < 1 || limit > 100) {
-      throw new ValidationError('Invalid pagination parameters');
-    }
-    const [posts, total] = await Promise.all([
-      repos.posts.findAll({ skip: (page - 1) * limit, take: limit }),
-      repos.posts.count(),
-    ]);
-    return paginatedResponse(posts, page, limit, total);
-  });
-}
+if (!lead) throw new ResourceNotFoundError('Lead');
 ```
 
 ## 测试
@@ -297,9 +186,9 @@ export async function GET(request: NextRequest) {
 Repository 模式便于测试：
 
 ```typescript
-const mockUserRepo = {
-  findById: jest.fn().mockResolvedValue({ id: 1, email: 'test@example.com' }),
-  create: jest.fn(),
+const mockLeadRepo = {
+  findById: vi.fn().mockResolvedValue({ id: 1, email: 'test@example.com' }),
+  create: vi.fn(),
 };
 ```
 
@@ -309,7 +198,7 @@ const mockUserRepo = {
 
 1. 单一职责：每个 Repository 只管理一个实体
 2. 统一异常：数据库异常转换为应用异常
-3. 类型安全：充分利用 Prisma 类型
+3. 类型安全：充分利用 TypeScript 类型
 4. 注释清晰：方法文档完整
 5. 返回完整对象：需要时包含关系
 
@@ -329,12 +218,12 @@ async create(data) {
   }
 
   // ❌ 不要在此层调用外部服务
-  await this.sendWelcomeEmail(data.email);
+  await this.sendNotificationEmail(data.email);
 
   // ❌ 不要在此层管理缓存
-  await this.cache.delete('users');
+  await this.cache.delete('leads');
 
-  return await this.prisma.user.create({ data });
+  return await this.db.prepare(...).run();
 }
 ```
 
@@ -343,33 +232,30 @@ async create(data) {
 新增一个 Repository：
 
 ```typescript
-// 4. 使用
-import { createRepositories } from '@/repositories';
+// 3. 使用
+import { ProductRepository } from '@/repositories';
 
 // 1. 新增 Repository 类
-export class CommentRepository {
-  constructor(private prisma: PrismaClient) {}
+// repositories/product.repository.ts
+export class ProductRepository {
+  constructor(private db: D1Database) {}
+
   async findAll() {
     try {
-      return await this.prisma.comment.findMany();
+      const result = await this.db.prepare('SELECT * FROM products').all();
+      return result.results;
     } catch (error) {
-      throw new DatabaseQueryError('Failed to fetch comments', error);
+      throw new DatabaseQueryError('Failed to fetch products', error);
     }
   }
 }
 
-// 2. 注册到工厂
-export class RepositoryFactory {
-  get comments(): CommentRepository {
-    return new CommentRepository(this.prisma);
-  }
-}
+// 2. 导出
+// repositories/index.ts
+export { ProductRepository } from './product.repository';
 
-// 3. 导出
-export { CommentRepository } from './comment.repository';
-
-const repos = createRepositories(prisma);
-const comments = await repos.comments.findAll();
+const productRepo = new ProductRepository(db);
+const products = await productRepo.findAll();
 ```
 
 ## 总结
@@ -378,7 +264,7 @@ const comments = await repos.comments.findAll();
 
 1. 📦 封装数据访问：所有数据库操作经由 Repository
 2. 🎯 单一职责：Repository 只负责数据
-3. 🚫 无业务逻辑：业务规则在 API 层处理
+3. �� 无业务逻辑：业务规则在 API 层处理
 4. ⚠️ 统一异常：数据库错误转换为应用异常
 5. 🧪 易于测试：可轻松 mock 与单测
 

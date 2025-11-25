@@ -60,17 +60,13 @@ cloudflare-worker-template/
 ├── app/                      # Next.js App Router
 │   ├── api/                  # API 路由
 │   │   ├── health/          # 健康检查 API
-│   │   ├── users/           # 用户 CRUD API
-│   │   │   └── [id]/       # 单个用户操作
-│   │   ├── posts/           # 文章 CRUD API
-│   │   │   └── [id]/       # 单个文章操作
+│   │   ├── contact/         # 联系表单 API
 │   │   └── upload/          # 文件上传 API
 │   ├── layout.tsx           # 根布局
 │   └── page.tsx             # 首页
 ├── repositories/             # 数据访问层（Repository 模式）
 │   ├── index.ts             # Repository 工厂和导出
-│   ├── user.repository.ts   # User 数据操作
-│   └── post.repository.ts   # Post 数据操作
+│   └── lead.repository.ts   # 询盘/线索数据操作
 ├── lib/                      # 核心库
 │   ├── api/                 # API 工具
 │   │   ├── response.ts     # 统一响应格式
@@ -161,7 +157,7 @@ logger.error('Failed to connect', error, { userId: 123 });
 
 // 带上下文的日志记录器
 const apiLogger = LoggerFactory.getLogger('api');
-apiLogger.info('Request received', { path: '/api/users' });
+apiLogger.info('Request received', { path: '/api/contact' });
 ```
 
 ### 5. 统一 API 响应格式
@@ -197,10 +193,10 @@ apiLogger.info('Request received', { path: '/api/users' });
 import { createdResponse, errorResponse, paginatedResponse, successResponse } from '@/lib/api';
 
 // 成功
-return successResponse(user, 'User retrieved successfully');
+return successResponse(lead, 'Lead retrieved successfully');
 
 // 创建（201）
-return createdResponse(user, 'User created successfully');
+return createdResponse(lead, 'Lead created successfully');
 
 // 分页
 return paginatedResponse(posts, page, limit, total);
@@ -236,21 +232,13 @@ export async function GET(request: NextRequest) {
 - GET：返回系统健康状态
 - 检查 D1、R2、KV 可用性
 
-#### 用户（`/api/users`）
+#### 联系表单（`/api/contact`）
 
-- GET：获取所有用户（带缓存）
-- POST：创建新用户（带验证）
-- GET `/api/users/[id]`：获取单个用户
-- PATCH `/api/users/[id]`：更新用户
-- DELETE `/api/users/[id]`：删除用户
-
-#### 文章（`/api/posts`）
-
-- GET：获取所有文章（支持分页/过滤）
-- POST：创建新文章
-- GET `/api/posts/[id]`：获取单个文章
-- PATCH `/api/posts/[id]`：更新文章
-- DELETE `/api/posts/[id]`：删除文章
+- POST：提交联系表单（创建询盘）
+  - 字段验证（name, email, message 等）
+  - 速率限制保护
+  - 邮件通知（Resend）
+  - 存储到 D1 数据库
 
 #### 上传（`/api/upload`）
 
