@@ -113,6 +113,7 @@ export class AppError extends Error {
   public readonly isOperational: boolean;
   public readonly details?: unknown;
 
+  // eslint-disable-next-line max-params
   constructor(
     message: string,
     type: ErrorType = ErrorType.UNKNOWN_ERROR,

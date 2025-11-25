@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+
 import { AppError, createAppErrorFromNative, ErrorType } from '@/lib/errors';
 import { logger } from '@/lib/logger';
 
@@ -87,14 +88,22 @@ export function createErrorResponse(error: Error | AppError | unknown): ApiError
 }
 
 /**
+ * Options for successResponse
+ */
+export interface SuccessResponseOptions<T = unknown> {
+  data: T;
+  message?: string;
+  statusCode?: number;
+  meta?: ApiSuccessResponse<T>['meta'];
+}
+
+/**
  * Return a successful Next.js response
  */
 export function successResponse<T = unknown>(
-  data: T,
-  message?: string,
-  statusCode = 200,
-  meta?: ApiSuccessResponse<T>['meta']
+  options: SuccessResponseOptions<T>
 ): NextResponse<ApiSuccessResponse<T>> {
+  const { data, message, statusCode = 200, meta } = options;
   const response = createSuccessResponse(data, message, meta);
   return NextResponse.json(response, { status: statusCode });
 }
@@ -127,27 +136,40 @@ export function withApiHandler<T = unknown>(
   handler: () => Promise<T>
 ): Promise<NextResponse<ApiResponse<T>>> {
   return handler()
-    .then(data => successResponse(data))
-    .catch(error => errorResponse(error));
+    .then((data) => successResponse({ data }))
+    .catch((error) => errorResponse(error));
+}
+
+/**
+ * Options for paginatedResponse
+ */
+export interface PaginatedResponseOptions<T = unknown> {
+  data: T[];
+  page: number;
+  limit: number;
+  total: number;
+  message?: string;
 }
 
 /**
  * Pagination response helper
  */
 export function paginatedResponse<T = unknown>(
-  data: T[],
-  page: number,
-  limit: number,
-  total: number,
-  message?: string
+  options: PaginatedResponseOptions<T>
 ): NextResponse<ApiSuccessResponse<T[]>> {
-  return successResponse(data, message, 200, {
-    page,
-    limit,
-    total,
-    totalPages: Math.ceil(total / limit),
-    hasNext: page * limit < total,
-    hasPrev: page > 1,
+  const { data, page, limit, total, message } = options;
+  return successResponse({
+    data,
+    message,
+    statusCode: 200,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      hasNext: page * limit < total,
+      hasPrev: page > 1,
+    },
   });
 }
 
@@ -158,7 +180,7 @@ export function createdResponse<T = unknown>(
   data: T,
   message?: string
 ): NextResponse<ApiSuccessResponse<T>> {
-  return successResponse(data, message, 201);
+  return successResponse({ data, message, statusCode: 201 });
 }
 
 /**

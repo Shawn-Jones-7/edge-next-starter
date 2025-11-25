@@ -8,7 +8,6 @@
  * 3. Check for unapplied migrations
  * 4. Validate SQL syntax of migration files
  */
-
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -75,7 +74,7 @@ function getMigrationFiles() {
 
   const files = fs
     .readdirSync(MIGRATIONS_DIR)
-    .filter(file => file.endsWith('.sql') && !file.includes('.template'))
+    .filter((file) => file.endsWith('.sql') && !file.includes('.template'))
     .sort();
 
   return files;
@@ -91,7 +90,7 @@ function validateMigrationNaming(files) {
   const namePattern = /^\d{4}_[a-z_]+\.sql$/;
   const errors = [];
 
-  files.forEach(file => {
+  files.forEach((file) => {
     if (!namePattern.test(file)) {
       errors.push(`Invalid file name: ${file}`);
     }
@@ -113,7 +112,7 @@ function validateMigrationSequence(files) {
   const errors = [];
   let lastNumber = 0;
 
-  files.forEach(file => {
+  files.forEach((file) => {
     const number = parseInt(file.substring(0, 4));
 
     if (number !== lastNumber + 1) {
@@ -187,12 +186,16 @@ function extractModelsFromSchema(schema) {
 function extractTablesFromMigrations(files) {
   const tables = new Map();
 
-  files.forEach(file => {
+  files.forEach((file) => {
     const sqlPath = path.join(MIGRATIONS_DIR, file);
+    // Path is constructed from validated migration directory and file list from readdirSync
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
     const sql = fs.readFileSync(sqlPath, 'utf8');
 
     // Extract CREATE TABLE statements
-    const createTablePattern = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(\w+)\s*\(([^;]+)\);?/gi;
+    // Using non-greedy match to prevent ReDoS with controlled SQL input
+    // eslint-disable-next-line security/detect-unsafe-regex
+    const createTablePattern = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(\w+)\s*\(([^;]+?)\);?/gi;
 
     let match;
     while ((match = createTablePattern.exec(sql)) !== null) {
@@ -203,7 +206,7 @@ function extractTablesFromMigrations(files) {
       const fields = [];
       const lines = tableBody.split(',');
 
-      lines.forEach(line => {
+      lines.forEach((line) => {
         const trimmed = line.trim();
         if (
           trimmed &&
@@ -248,7 +251,7 @@ function validateSchemaConsistency() {
   const warnings = [];
 
   // Check each Prisma model has a corresponding SQL table
-  models.forEach((model, modelName) => {
+  models.forEach((model) => {
     // Use the tableName from @@map or default plural form
     const tableName = model.tableName;
 
@@ -262,7 +265,7 @@ function validateSchemaConsistency() {
   // Check each SQL table has a corresponding Prisma model
   tables.forEach((table, tableName) => {
     let found = false;
-    models.forEach(model => {
+    models.forEach((model) => {
       if (model.tableName === tableName) {
         found = true;
       }
@@ -280,7 +283,7 @@ function validateSchemaConsistency() {
   }
 
   if (warnings.length > 0) {
-    warnings.forEach(warning => warn(warning));
+    warnings.forEach((warning) => warn(warning));
   }
 
   success('Prisma schema consistency validation passed');
@@ -294,8 +297,10 @@ function validateSqlSyntax(files) {
 
   const errors = [];
 
-  files.forEach(file => {
+  files.forEach((file) => {
     const sqlPath = path.join(MIGRATIONS_DIR, file);
+    // Path is constructed from validated migration directory and file list from readdirSync
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
     const sql = fs.readFileSync(sqlPath, 'utf8');
 
     // Basic syntax checks
@@ -312,7 +317,7 @@ function validateSqlSyntax(files) {
       },
     ];
 
-    checks.forEach(check => {
+    checks.forEach((check) => {
       if (check.required && !check.pattern.test(sql)) {
         errors.push(`${file}: ${check.message}`);
       }

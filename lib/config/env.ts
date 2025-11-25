@@ -24,7 +24,7 @@ const envSchema = z
     RATE_LIMIT_ENABLED: z
       .enum(['true', 'false'])
       .default('true')
-      .transform(val => val === 'true'),
+      .transform((val) => val === 'true'),
     RATE_LIMIT_MAX_REQUESTS: z.coerce.number().min(1).max(10000).default(100),
     RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().min(1).max(3600).default(60),
 
@@ -32,7 +32,7 @@ const envSchema = z
     ANALYTICS_ENABLED: z
       .enum(['true', 'false'])
       .default('true')
-      .transform(val => val === 'true'),
+      .transform((val) => val === 'true'),
     // Analytics backend selection: log|kv|d1|engine
     ANALYTICS_SINK: z.enum(['log', 'kv', 'd1', 'engine']).default('log'),
 
@@ -42,7 +42,7 @@ const envSchema = z
     LOG_INCLUDE_TIMESTAMP: z
       .enum(['true', 'false'])
       .default('true')
-      .transform(val => val === 'true'),
+      .transform((val) => val === 'true'),
 
     // Database configuration
     DATABASE_QUERY_TIMEOUT: z.coerce.number().min(1000).max(30000).default(5000),
@@ -54,7 +54,7 @@ const envSchema = z
     ENABLE_PERFORMANCE_MONITORING: z
       .enum(['true', 'false'])
       .default('true')
-      .transform(val => val === 'true'),
+      .transform((val) => val === 'true'),
     SLOW_QUERY_THRESHOLD_MS: z.coerce.number().min(100).max(10000).default(1000),
   })
   .superRefine((value, ctx) => {
@@ -121,7 +121,7 @@ function validateEnv(): Env {
       console.error('❌ Environment variable validation failed:');
       console.error('-----------------------------------');
 
-      error.issues.forEach(err => {
+      error.issues.forEach((err) => {
         const path = err.path.join('.');
         console.error(`  • ${path}: ${err.message}`);
       });
@@ -146,7 +146,7 @@ function validateFullEnv(): FullEnv {
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('❌ Environment variable validation failed:');
-      error.issues.forEach(err => {
+      error.issues.forEach((err) => {
         console.error(`  • ${err.path.join('.')}: ${err.message}`);
       });
     }

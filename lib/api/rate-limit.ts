@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createCacheClient } from '@/lib/cache/client';
+
 import { RateLimitConfig, RateLimitStatus } from '@/types/rate-limit';
 import { analytics } from '@/lib/analytics';
+import { createCacheClient } from '@/lib/cache/client';
 
 /**
  * Default rate limit configuration
@@ -53,7 +54,7 @@ function getClientIdentifier(request: NextRequest): string {
   const forwarded = request.headers.get('X-Forwarded-For');
   if (forwarded) {
     const ips = forwarded.split(',');
-    return ips[0].trim();
+    return ips[0]!.trim();
   }
 
   // Fallback: X-Real-IP
@@ -203,7 +204,7 @@ export async function withRateLimit<T>(
 
   // Check skip list
   const pathname = new URL(request.url).pathname;
-  if (config.skipPaths?.some(path => pathname.startsWith(path))) {
+  if (config.skipPaths?.some((path) => pathname.startsWith(path))) {
     return handler();
   }
 

@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createPrismaClient } from '@/lib/db/client';
+
 import { createRepositories, RepositoryFactory } from '@/repositories';
+
+import { createPrismaClient } from '@/lib/db/client';
 import { DatabaseConnectionError } from '@/lib/errors';
+
 import { withMiddleware } from './middleware';
 
 /**
@@ -20,11 +23,12 @@ import { withMiddleware } from './middleware';
  *   });
  * }
  */
+// eslint-disable-next-line require-await
 export async function withRepositories<T>(
   request: NextRequest,
   handler: (repos: RepositoryFactory) => Promise<NextResponse<T>>
 ): Promise<NextResponse<T>> {
-  return withMiddleware(request, async () => {
+  return withMiddleware(request, () => {
     // Initialize Prisma client
     const prisma = createPrismaClient();
     if (!prisma) {
@@ -35,6 +39,6 @@ export async function withRepositories<T>(
     const repos = createRepositories(prisma);
 
     // Execute business logic
-    return await handler(repos);
+    return handler(repos);
   });
 }

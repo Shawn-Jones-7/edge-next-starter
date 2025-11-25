@@ -1,8 +1,9 @@
 import { NextRequest } from 'next/server';
-import { withMiddleware, withApiHandler } from '@/lib/api';
+
+import { withApiHandler, withMiddleware } from '@/lib/api';
+import { getKVNamespace } from '@/lib/cache/client';
 import { getDatabase } from '@/lib/db/client';
 import { getR2Bucket } from '@/lib/r2/client';
-import { getKVNamespace } from '@/lib/cache/client';
 
 export const runtime = 'edge';
 
@@ -16,8 +17,10 @@ interface HealthStatus {
   };
 }
 
+// eslint-disable-next-line require-await
 export async function GET(request: NextRequest) {
   return withMiddleware(request, () =>
+    // eslint-disable-next-line require-await
     withApiHandler(async () => {
       // Check availability of services
       const db = getDatabase();
@@ -31,7 +34,7 @@ export async function GET(request: NextRequest) {
       };
 
       // Determine overall health status
-      const unavailableCount = Object.values(services).filter(s => s === 'unavailable').length;
+      const unavailableCount = Object.values(services).filter((s) => s === 'unavailable').length;
       let status: HealthStatus['status'];
 
       if (unavailableCount === 0) {

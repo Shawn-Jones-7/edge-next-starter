@@ -1,35 +1,24 @@
 import { PrismaClient } from '@prisma/client';
-import { UserRepository } from './user.repository';
-import { PostRepository } from './post.repository';
+
+import { LeadRepository } from './lead.repository';
 
 /**
  * Repository Factory
  * Create and manage all repository instances
  */
 export class RepositoryFactory {
-  private userRepo?: UserRepository;
-  private postRepo?: PostRepository;
+  private leadRepo?: LeadRepository;
 
   constructor(private prisma: PrismaClient) {}
 
   /**
-   * Get User Repository
+   * Get Lead Repository
    */
-  get users(): UserRepository {
-    if (!this.userRepo) {
-      this.userRepo = new UserRepository(this.prisma);
+  get leads(): LeadRepository {
+    if (!this.leadRepo) {
+      this.leadRepo = new LeadRepository(this.prisma);
     }
-    return this.userRepo;
-  }
-
-  /**
-   * Get Post Repository
-   */
-  get posts(): PostRepository {
-    if (!this.postRepo) {
-      this.postRepo = new PostRepository(this.prisma);
-    }
-    return this.postRepo;
+    return this.leadRepo;
   }
 }
 
@@ -41,5 +30,4 @@ export function createRepositories(prisma: PrismaClient): RepositoryFactory {
 }
 
 // Export all repositories
-export { UserRepository } from './user.repository';
-export { PostRepository } from './post.repository';
+export { LeadRepository, type CreateLeadData, type UpdateLeadData } from './lead.repository';

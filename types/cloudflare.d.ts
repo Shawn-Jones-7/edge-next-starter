@@ -78,7 +78,7 @@ declare global {
    * Deno global flag
    * Used to detect if running in Deno environment
    */
-  const Deno: any | undefined;
+  const Deno: unknown | undefined;
 }
 
 export {};

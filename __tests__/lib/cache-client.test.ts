@@ -1,5 +1,6 @@
-import { describe, it, expect, vi } from 'vitest';
-import { createCacheClient, CacheClient, withCache } from '@/lib/cache/client';
+import { describe, expect, it, vi } from 'vitest';
+
+import { CacheClient, createCacheClient, withCache } from '@/lib/cache/client';
 
 describe('Cache Client', () => {
   describe('createCacheClient', () => {

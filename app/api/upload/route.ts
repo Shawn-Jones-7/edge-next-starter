@@ -1,23 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
+
 import {
-  validationErrorResponse,
   notFoundResponse,
-  withMiddleware,
+  validationErrorResponse,
   withApiHandler,
+  withMiddleware,
 } from '@/lib/api';
-import { uploadFile, downloadFile } from '@/lib/r2/client';
 import {
   FileSizeExceededError,
   FileUploadError,
   MissingRequiredFieldError,
-  AuthenticationError,
   TooManyRequestsError,
   ValidationError,
 } from '@/lib/errors';
-import { auth } from '@/lib/auth/config';
-import { checkUploadRateLimit, checkRateLimit } from '@/lib/rate-limiter';
+import { downloadFile, uploadFile } from '@/lib/r2/client';
+import { checkRateLimit } from '@/lib/rate-limiter';
 import { createSignedDownloadUrl, verifySignedUrl } from '@/lib/signed-url';
-import { getClientIdentifier, getAdjustedRateLimit } from '@/lib/utils/client-identifier';
+import { getAdjustedRateLimit, getClientIdentifier } from '@/lib/utils/client-identifier';
 
 export const runtime = 'edge';
 
@@ -28,27 +27,35 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const URL_EXPIRATION_SECONDS = 3600;
 
 // POST /api/upload - Upload file to R2
+// eslint-disable-next-line require-await
 export async function POST(request: NextRequest) {
   return withMiddleware(request, () =>
     withApiHandler(async () => {
-      // Check authentication
-      const session = await auth();
-      if (!session?.user?.id) {
-        throw new AuthenticationError('Please login to upload files');
-      }
+      // Get client identifier for rate limiting (IP-based for public uploads)
+      const clientId = await getClientIdentifier(request);
 
-      const userId = session.user.id;
+      // Get adjusted rate limit based on identifier type
+      const { limit: adjustedLimit, isStrict } = getAdjustedRateLimit(clientId, 10);
 
-      // Check upload rate limit
-      const rateLimit = await checkUploadRateLimit(userId);
+      // Check upload rate limit (IP-based)
+      const rateLimit = await checkRateLimit(clientId, {
+        maxRequests: adjustedLimit,
+        windowSeconds: 60,
+        keyPrefix: 'rate-limit:upload',
+      });
+
       if (!rateLimit.allowed) {
         const resetDate = new Date(rateLimit.resetAt * 1000);
+        const strictWarning = isStrict
+          ? ' (stricter limit applied due to incomplete client information)'
+          : '';
         throw new TooManyRequestsError(
-          `Upload rate limit exceeded. You can upload ${rateLimit.limit} files per minute. Please try again after ${resetDate.toLocaleTimeString()}.`,
+          `Upload rate limit exceeded. You can upload ${rateLimit.limit} files per minute${strictWarning}. Please try again after ${resetDate.toLocaleTimeString()}.`,
           {
             limit: rateLimit.limit,
             current: rateLimit.current,
             resetAt: rateLimit.resetAt,
+            isStrict,
           }
         );
       }
@@ -73,7 +80,6 @@ export async function POST(request: NextRequest) {
       const stored = await uploadFile(key, file, {
         originalName: file.name,
         uploadedAt: new Date().toISOString(),
-        uploadedBy: userId,
       });
 
       if (!stored) {
@@ -107,6 +113,7 @@ export async function POST(request: NextRequest) {
 }
 
 // GET /api/upload?key=xxx&signature=xxx&expires=xxx - Download file
+// eslint-disable-next-line require-await
 export async function GET(request: NextRequest) {
   return withMiddleware(request, async () => {
     const searchParams = request.nextUrl.searchParams;

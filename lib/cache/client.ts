@@ -1,13 +1,8 @@
-import { getCloudflareEnv } from '@/lib/db/client';
 import { analytics } from '@/lib/analytics';
+import { getKVNamespace } from '@/lib/kv/namespace';
 
-/**
- * Get KV namespace instance
- */
-export function getKVNamespace(): KVNamespace | null {
-  const env = getCloudflareEnv();
-  return env?.KV || null;
-}
+// Re-export for backward compatibility
+export { getKVNamespace } from '@/lib/kv/namespace';
 
 /**
  * KV cache client
@@ -37,7 +32,7 @@ export class CacheClient {
   /**
    * Set cache (alias, KV API compatible)
    */
-  async put(
+  put(
     key: string,
     value: string | ArrayBuffer | ReadableStream,
     options?: KVNamespacePutOptions
@@ -84,8 +79,8 @@ export class CacheClient {
   /**
    * List all keys
    */
-  async list(options?: KVNamespaceListOptions): Promise<KVNamespaceListResult<unknown>> {
-    return await this.kv.list(options);
+  list(options?: KVNamespaceListOptions): Promise<KVNamespaceListResult<unknown>> {
+    return this.kv.list(options);
   }
 
   /**
@@ -119,7 +114,7 @@ export async function withCache<T>(
 
   // If no cache client, execute function directly
   if (!cache) {
-    return await fn();
+    return fn();
   }
 
   // Try to get from cache

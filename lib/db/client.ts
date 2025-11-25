@@ -1,5 +1,6 @@
-import { PrismaClient } from '@prisma/client';
 import { PrismaD1 } from '@prisma/adapter-d1';
+import { PrismaClient } from '@prisma/client';
+
 import { CloudflareEnv } from '@/types/cloudflare';
 
 /**
@@ -8,7 +9,7 @@ import { CloudflareEnv } from '@/types/cloudflare';
  * In Node.js Runtime, use global to avoid multiple instances during hot reload
  */
 declare global {
-  // eslint-disable-next-line no-var
+  // TypeScript global declaration requires var keyword
   var prisma: PrismaClient | undefined;
 }
 
@@ -145,8 +146,8 @@ export class DatabaseClient {
   /**
    * Execute insert/update/delete operations
    */
-  async execute(sql: string, params?: unknown[]): Promise<D1Result> {
-    return await this.db
+  execute(sql: string, params?: unknown[]): Promise<D1Result> {
+    return this.db
       .prepare(sql)
       .bind(...(params || []))
       .run();
@@ -155,11 +156,11 @@ export class DatabaseClient {
   /**
    * Execute batch operations
    */
-  async batch(statements: { sql: string; params?: unknown[] }[]): Promise<D1Result[]> {
+  batch(statements: { sql: string; params?: unknown[] }[]): Promise<D1Result[]> {
     const prepared = statements.map(({ sql, params }) =>
       this.db.prepare(sql).bind(...(params || []))
     );
-    return await this.db.batch(prepared);
+    return this.db.batch(prepared);
   }
 
   /**

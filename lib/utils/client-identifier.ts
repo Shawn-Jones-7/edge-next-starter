@@ -20,7 +20,7 @@ export function getClientIp(request: NextRequest): string | null {
   const forwardedFor = request.headers.get('x-forwarded-for');
   if (forwardedFor) {
     // x-forwarded-for can be: "client, proxy1, proxy2"
-    const firstIp = forwardedFor.split(',')[0].trim();
+    const firstIp = forwardedFor.split(',')[0]!.trim();
     if (firstIp && firstIp !== 'unknown') {
       return firstIp;
     }
@@ -52,7 +52,7 @@ export async function generateClientFingerprint(request: NextRequest): Promise<s
   const data = encoder.encode(fingerprintData);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 
   // Return first 16 characters for brevity
   return `fp_${hashHex.slice(0, 16)}`;

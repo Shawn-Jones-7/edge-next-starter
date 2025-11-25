@@ -7,14 +7,13 @@
  * Usage:
  *   node scripts/seed.js --env=local|test|prod
  */
-
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
 // Parse command-line arguments
 const args = process.argv.slice(2);
-const env = args.find(arg => arg.startsWith('--env='))?.split('=')[1] || 'local';
+const env = args.find((arg) => arg.startsWith('--env='))?.split('=')[1] || 'local';
 
 const envConfig = {
   local: {

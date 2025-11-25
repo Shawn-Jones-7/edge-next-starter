@@ -1,28 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { LoggerFactory } from '@/lib/logger';
+
 import { analytics } from '@/lib/analytics';
+import { LoggerFactory } from '@/lib/logger';
 
 const logger = LoggerFactory.getLogger('api-middleware');
 
 /**
- * Generate request ID
+ * Generate request ID using cryptographically secure random values
  */
 function generateRequestId(): string {
-  return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return `req_${Date.now()}_${crypto.randomUUID().replace(/-/g, '').substring(0, 12)}`;
 }
 
 /**
- * Generate Trace ID (for distributed tracing)
+ * Generate Trace ID (for distributed tracing) using cryptographically secure random values
  */
 function generateTraceId(): string {
-  return `trace_${Date.now()}_${Math.random().toString(36).substr(2, 16)}`;
+  return `trace_${Date.now()}_${crypto.randomUUID().replace(/-/g, '').substring(0, 16)}`;
 }
 
 /**
- * Generate Span ID (for specific operation tracing)
+ * Generate Span ID (for specific operation tracing) using cryptographically secure random values
  */
 function generateSpanId(): string {
-  return `span_${Math.random().toString(36).substr(2, 12)}`;
+  return `span_${crypto.randomUUID().replace(/-/g, '').substring(0, 12)}`;
 }
 
 /**
@@ -36,7 +37,7 @@ function getClientIp(request: NextRequest): string | undefined {
   // Fallback: X-Forwarded-For
   const forwarded = request.headers.get('X-Forwarded-For');
   if (forwarded) {
-    return forwarded.split(',')[0].trim();
+    return forwarded.split(',')[0]!.trim();
   }
 
   // Fallback: X-Real-IP
@@ -89,12 +90,18 @@ export async function withRequestLogging<T>(
     });
 
     // Track analytics event
-    await analytics.trackHttpRequest(method, path, response.status, duration, {
-      requestId,
-      traceId,
-      spanId,
-      ip: ip || undefined,
-      userAgent: userAgent || undefined,
+    await analytics.trackHttpRequest({
+      method,
+      path,
+      statusCode: response.status,
+      duration,
+      metadata: {
+        requestId,
+        traceId,
+        spanId,
+        ip: ip || undefined,
+        userAgent: userAgent || undefined,
+      },
     });
 
     // Add tracing response headers
@@ -139,17 +146,12 @@ export async function withRequestLogging<T>(
 
 /**
  * Error handling middleware
+ * Note: Error logging is handled in withRequestLogging
  */
-export async function withErrorHandling<T>(
+export function withErrorHandling<T>(
   handler: () => Promise<NextResponse<T>>
 ): Promise<NextResponse<T>> {
-  try {
-    return await handler();
-  } catch (error) {
-    // Error already logged in withRequestLogging
-    // Re-throw here; handled by errorResponse
-    throw error;
-  }
+  return handler();
 }
 
 /**

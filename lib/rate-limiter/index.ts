@@ -97,7 +97,7 @@ export async function checkRateLimit(
     });
   }
 
-  const resetAt = validTimestamps.length > 0 ? validTimestamps[0] + config.windowSeconds : now;
+  const resetAt = validTimestamps.length > 0 ? validTimestamps[0]! + config.windowSeconds : now;
 
   return {
     allowed,
@@ -115,7 +115,7 @@ export async function checkRateLimit(
 /**
  * Upload rate limiter: 5 uploads per minute per user
  */
-export async function checkUploadRateLimit(userId: string): Promise<RateLimitResult> {
+export function checkUploadRateLimit(userId: string): Promise<RateLimitResult> {
   return checkRateLimit(userId, {
     maxRequests: 5,
     windowSeconds: 60,
@@ -126,7 +126,7 @@ export async function checkUploadRateLimit(userId: string): Promise<RateLimitRes
 /**
  * Download rate limiter: 30 downloads per minute per IP
  */
-export async function checkDownloadRateLimit(ipAddress: string): Promise<RateLimitResult> {
+export function checkDownloadRateLimit(ipAddress: string): Promise<RateLimitResult> {
   return checkRateLimit(ipAddress, {
     maxRequests: 30,
     windowSeconds: 60,

@@ -114,7 +114,7 @@ export async function uploadFile(
   }
 
   const arrayBuffer = await file.arrayBuffer();
-  return await client.put(key, arrayBuffer, {
+  return client.put(key, arrayBuffer, {
     httpMetadata: {
       contentType: file.type || 'application/octet-stream',
     },
@@ -136,5 +136,5 @@ export async function downloadFile(key: string): Promise<Blob | null> {
     return null;
   }
 
-  return await object.blob();
+  return object.blob();
 }

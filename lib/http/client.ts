@@ -4,8 +4,10 @@
  */
 
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
-import { ApiError, ApiResponse, ApiSuccessResponse } from './types';
+
 import { ErrorType } from '@/lib/errors';
+
+import { ApiError, ApiResponse, ApiSuccessResponse } from './types';
 
 /**
  * Create axios instance with default configuration
@@ -21,7 +23,7 @@ const createAxiosInstance = (): AxiosInstance => {
 
   // Request interceptor
   instance.interceptors.request.use(
-    config => {
+    (config) => {
       // You can add auth tokens here if needed
       // const token = getAuthToken();
       // if (token) {
@@ -29,7 +31,7 @@ const createAxiosInstance = (): AxiosInstance => {
       // }
       return config;
     },
-    error => {
+    (error) => {
       return Promise.reject(error);
     }
   );

@@ -45,6 +45,7 @@ export type ApiResponse<T = unknown> = ApiSuccessResponse<T> | ApiErrorResponse;
  * Custom error class for API errors
  */
 export class ApiError extends Error {
+  // eslint-disable-next-line max-params
   constructor(
     message: string,
     public statusCode: number,

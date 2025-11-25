@@ -34,7 +34,7 @@ export async function generateSignedUrl(
 
   // Convert to hex string
   const signatureHex = Array.from(new Uint8Array(signature))
-    .map(b => b.toString(16).padStart(2, '0'))
+    .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 
   return {

@@ -1,9 +1,10 @@
-import { env } from '@/lib/config/env';
-import { LoggerFactory } from '@/lib/logger';
-import { getKVNamespace } from '@/lib/cache/client';
-import { getCloudflareEnv } from '@/lib/db/client';
 import { getRequestContext } from '@cloudflare/next-on-pages';
+
 import { CloudflareEnv } from '@/types/cloudflare';
+import { env } from '@/lib/config/env';
+import { getCloudflareEnv } from '@/lib/db/client';
+import { getKVNamespace } from '@/lib/kv/namespace';
+import { LoggerFactory } from '@/lib/logger';
 
 const logger = LoggerFactory.getLogger('analytics');
 
@@ -83,123 +84,9 @@ export class AnalyticsClient {
     }
 
     try {
-      // Write according to selected backend
-      switch (env.ANALYTICS_SINK) {
-        case 'log':
-          // Log to structured logger
-          logger.info('Analytics event tracked', {
-            eventType: event.type,
-            timestamp: event.timestamp,
-            ...event.data,
-            ...event.metadata,
-          });
-          break;
-        case 'kv': {
-          // Lightweight counting: per type + date (optional)
-          const key = `analytics:count:${event.type}:${new Date(event.timestamp).toISOString().slice(0, 10)}`;
-          try {
-            const kv = getKvForAnalytics();
-            if (kv) {
-              const current = parseInt((await kv.get(key, 'text')) || '0', 10) || 0;
-              await kv.put(key, String(current + 1), { expirationTtl: 7 * 24 * 3600 });
-            } else {
-              // Fallback to log when KV is unavailable
-              logger.info('Analytics event tracked', {
-                eventType: event.type,
-                timestamp: event.timestamp,
-                ...event.data,
-                ...event.metadata,
-              });
-            }
-          } catch (e) {
-            logger.warn('KV analytics write failed', e as Error);
-          }
-          break;
-        }
-        case 'd1': {
-          // Simplified DB sink: log instead (avoid migration dependency)
-          // If persisting to DB is required, add tables in migrations and insert here
-          logger.info('Analytics event (D1 stub)', {
-            eventType: event.type,
-            timestamp: event.timestamp,
-            ...event.data,
-            ...event.metadata,
-          });
-          // Example:
-          // const prisma = createPrismaClient();
-          // await prisma?.$executeRaw`INSERT INTO analytics_events(type, ts, data) VALUES(${event.type}, ${event.timestamp}, ${JSON.stringify(event)})`;
-          break;
-        }
-        case 'engine': {
-          const engine = getAnalyticsEngine();
-          if (engine) {
-            try {
-              // Column conventions:
-              // blobs:  [b0=type, b1=method, b2=path, b3=errorType, b4=operation]
-              // doubles:[d0=timestamp, d1=duration_ms, d2=statusCode]
-              // indexes:[i0=requestId, i1=traceId, i2=table, i3=userId]
-              const dataAny = event.data as Record<string, unknown>;
-              const blobs = [
-                String(event.type || ''),
-                String((dataAny.method as string) || ''),
-                String((dataAny.path as string) || ''),
-                String((dataAny.errorType as string) || ''),
-                String((dataAny.operation as string) || ''),
-              ];
-              // Unified fields: timestamp and duration_ms always present; statusCode defaults to 0
-              const durationMs = Number((dataAny.duration as number) ?? 0) || 0;
-              const statusCode = Number((dataAny.statusCode as number) ?? 0) || 0;
-              const doubles = [Number(event.timestamp || Date.now()), durationMs, statusCode];
-              // Normalize optional fields to avoid issues when querying
-              const requestId = String(event.metadata?.requestId || '');
-              const traceId = String(event.metadata?.traceId || '');
-              const table = String((dataAny.table as string) || '');
-              const userId = String((event.metadata?.userId as string | number | undefined) ?? '');
-              const indexes = [requestId, traceId, table, userId];
+      await this.routeToSink(event);
 
-              await engine.writeDataPoint({ blobs, doubles, indexes });
-            } catch (e) {
-              // On write failure, fallback to log
-              logger.warn('Analytics Engine write failed, falling back to log', e as Error);
-              logger.info('Analytics event tracked', {
-                eventType: event.type,
-                timestamp: event.timestamp,
-                ...event.data,
-                ...event.metadata,
-              });
-            }
-          } else {
-            // Fallback to log when binding missing
-            logger.info('Analytics event tracked', {
-              eventType: event.type,
-              timestamp: event.timestamp,
-              ...event.data,
-              ...event.metadata,
-            });
-          }
-          break;
-        }
-        default:
-          logger.info('Analytics event tracked', {
-            eventType: event.type,
-            timestamp: event.timestamp,
-            ...event.data,
-            ...event.metadata,
-          });
-      }
-
-      // TODO: Integrate Cloudflare Analytics Engine
-      // When Analytics Engine binding is configured, can use:
-      // const analyticsEngine = getAnalyticsEngine();
-      // if (analyticsEngine) {
-      //   await analyticsEngine.writeDataPoint({
-      //     blobs: [event.type],
-      //     doubles: [event.timestamp],
-      //     indexes: [event.metadata?.requestId || ''],
-      //   });
-      // }
-
-      // Currently use console log as fallback
+      // Console log for development/debugging
       if (env.ENABLE_PERFORMANCE_MONITORING) {
         this.logEventToConsole(event);
       }
@@ -211,38 +98,177 @@ export class AnalyticsClient {
   }
 
   /**
+   * Route event to configured sink
+   */
+  private routeToSink(event: AnalyticsEvent): Promise<void> | void {
+    const sink = env.ANALYTICS_SINK;
+
+    switch (sink) {
+      case 'log':
+        return this.trackToLog(event);
+      case 'kv':
+        return this.trackToKV(event);
+      case 'd1':
+        return this.trackToD1(event);
+      case 'engine':
+        return this.trackToEngine(event);
+      default:
+        return this.trackToLog(event);
+    }
+  }
+
+  /**
+   * Track event to structured logger
+   */
+  private trackToLog(event: AnalyticsEvent): void {
+    logger.info('Analytics event tracked', {
+      eventType: event.type,
+      timestamp: event.timestamp,
+      ...event.data,
+      ...event.metadata,
+    });
+  }
+
+  /**
+   * Track event to KV storage (lightweight counting)
+   */
+  private async trackToKV(event: AnalyticsEvent): Promise<void> {
+    const kv = getKvForAnalytics();
+    if (!kv) {
+      return this.trackToLog(event);
+    }
+
+    const key = `analytics:count:${event.type}:${new Date(event.timestamp).toISOString().slice(0, 10)}`;
+
+    try {
+      const current = parseInt((await kv.get(key, 'text')) || '0', 10) || 0;
+      await kv.put(key, String(current + 1), { expirationTtl: 7 * 24 * 3600 });
+    } catch (error) {
+      logger.warn('KV analytics write failed', error as Error);
+    }
+  }
+
+  /**
+   * Track event to D1 database
+   */
+  private trackToD1(event: AnalyticsEvent): void {
+    // Simplified DB sink: log instead (avoid migration dependency)
+    // If persisting to DB is required, add tables in migrations and insert here
+    logger.info('Analytics event (D1 stub)', {
+      eventType: event.type,
+      timestamp: event.timestamp,
+      ...event.data,
+      ...event.metadata,
+    });
+    // Example:
+    // const prisma = createPrismaClient();
+    // await prisma?.$executeRaw`INSERT INTO analytics_events(type, ts, data) VALUES(${event.type}, ${event.timestamp}, ${JSON.stringify(event)})`;
+  }
+
+  /**
+   * Track event to Analytics Engine
+   */
+  private async trackToEngine(event: AnalyticsEvent): Promise<void> {
+    const engine = getAnalyticsEngine();
+    if (!engine) {
+      return this.trackToLog(event);
+    }
+
+    try {
+      const dataPoint = this.buildEngineDataPoint(event);
+      await engine.writeDataPoint(dataPoint);
+    } catch (error) {
+      logger.warn('Analytics Engine write failed, falling back to log', error as Error);
+      this.trackToLog(event);
+    }
+  }
+
+  /**
+   * Build Analytics Engine data point from event
+   */
+  private buildEngineDataPoint(event: AnalyticsEvent) {
+    // Column conventions:
+    // blobs:  [b0=type, b1=method, b2=path, b3=errorType, b4=operation]
+    // doubles:[d0=timestamp, d1=duration_ms, d2=statusCode]
+    // indexes:[i0=requestId, i1=traceId, i2=table, i3=userId]
+    return {
+      blobs: this.buildBlobs(event),
+      doubles: this.buildDoubles(event),
+      indexes: this.buildIndexes(event),
+    };
+  }
+
+  /**
+   * Build blobs array for Analytics Engine
+   */
+  private buildBlobs(event: AnalyticsEvent): string[] {
+    const dataAny = event.data as Record<string, unknown>;
+    return [
+      String(event.type || ''),
+      String((dataAny.method as string) || ''),
+      String((dataAny.path as string) || ''),
+      String((dataAny.errorType as string) || ''),
+      String((dataAny.operation as string) || ''),
+    ];
+  }
+
+  /**
+   * Build doubles array for Analytics Engine
+   */
+  private buildDoubles(event: AnalyticsEvent): number[] {
+    const dataAny = event.data as Record<string, unknown>;
+    const durationMs = Number((dataAny.duration as number) ?? 0) || 0;
+    const statusCode = Number((dataAny.statusCode as number) ?? 0) || 0;
+    return [Number(event.timestamp || Date.now()), durationMs, statusCode];
+  }
+
+  /**
+   * Build indexes array for Analytics Engine
+   */
+  private buildIndexes(event: AnalyticsEvent): string[] {
+    const dataAny = event.data as Record<string, unknown>;
+    return [
+      String(event.metadata?.requestId || ''),
+      String(event.metadata?.traceId || ''),
+      String((dataAny.table as string) || ''),
+      String((event.metadata?.userId as string | number | undefined) ?? ''),
+    ];
+  }
+
+  /**
    * Track HTTP request event
    */
-  async trackHttpRequest(
-    method: string,
-    path: string,
-    statusCode: number,
-    duration: number,
-    metadata?: AnalyticsEvent['metadata']
-  ): Promise<void> {
+  async trackHttpRequest(options: {
+    method: string;
+    path: string;
+    statusCode: number;
+    duration: number;
+    metadata?: AnalyticsEvent['metadata'];
+  }): Promise<void> {
     await this.trackEvent({
       type: AnalyticsEventType.HTTP_REQUEST,
       timestamp: Date.now(),
       data: {
-        method,
-        path,
-        statusCode,
-        duration,
-        success: statusCode < 400,
+        method: options.method,
+        path: options.path,
+        statusCode: options.statusCode,
+        duration: options.duration,
+        success: options.statusCode < 400,
       },
-      metadata,
+      metadata: options.metadata,
     });
   }
 
   /**
    * Track database query event
    */
-  async trackDatabaseQuery(
-    operation: string,
-    table: string,
-    duration: number,
-    metadata?: AnalyticsEvent['metadata']
-  ): Promise<void> {
+  async trackDatabaseQuery(options: {
+    operation: string;
+    table: string;
+    duration: number;
+    metadata?: AnalyticsEvent['metadata'];
+  }): Promise<void> {
+    const { operation, table, duration, metadata } = options;
     const threshold = env.SLOW_QUERY_THRESHOLD_MS || 1000;
     const isSlow = duration > threshold;
 

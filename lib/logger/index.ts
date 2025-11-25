@@ -119,6 +119,7 @@ export class Logger {
   /**
    * Create log entry
    */
+  // eslint-disable-next-line max-params
   private createLogEntry(
     level: LogLevel,
     message: string,
@@ -255,6 +256,7 @@ export class Logger {
   /**
    * Record HTTP request
    */
+  // eslint-disable-next-line max-params
   http(
     method: string,
     path: string,
