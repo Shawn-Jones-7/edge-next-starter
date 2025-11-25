@@ -128,7 +128,7 @@ cloudflare-worker-template/
 #### 使用示例
 
 ```typescript
-import { ValidationError, DatabaseConnectionError } from '@/lib/errors';
+import { DatabaseConnectionError, ValidationError } from '@/lib/errors';
 
 // 抛出验证错误
 if (!email) {
@@ -194,7 +194,7 @@ apiLogger.info('Request received', { path: '/api/users' });
 #### 使用示例
 
 ```typescript
-import { successResponse, createdResponse, errorResponse, paginatedResponse } from '@/lib/api';
+import { createdResponse, errorResponse, paginatedResponse, successResponse } from '@/lib/api';
 
 // 成功
 return successResponse(user, 'User retrieved successfully');
@@ -311,7 +311,7 @@ export async function GET(request: NextRequest) {
 
 ```typescript
 // ✅ 推荐：使用 Repository
-return withRepositories(request, async repos => {
+return withRepositories(request, async (repos) => {
   const users = await repos.users.findAll();
   return successResponse(users);
 });
@@ -415,7 +415,7 @@ const users = await prisma.user.findMany();
 
 ```typescript
 // ✅ 推荐：使用 Repository
-return withRepositories(request, async repos => {
+return withRepositories(request, async (repos) => {
   const users = await repos.users.findAll();
   return successResponse(users);
 });

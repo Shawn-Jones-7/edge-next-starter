@@ -87,12 +87,13 @@ pnpm run test:coverage
 ```typescript
 // app/api/example/route.ts
 import { NextRequest } from 'next/server';
-import { withRepositories, successResponse } from '@/lib/api';
+
+import { successResponse, withRepositories } from '@/lib/api';
 
 export const runtime = 'edge'; // 重要：启用 Edge Runtime
 
 export async function GET(request: NextRequest) {
-  return withRepositories(request, async repos => {
+  return withRepositories(request, async (repos) => {
     const users = await repos.users.findAll();
     return successResponse(users, '读取用户列表成功');
   });
@@ -103,11 +104,12 @@ export async function GET(request: NextRequest) {
 
 ```typescript
 import { NextRequest } from 'next/server';
-import { withRepositories, successResponse } from '@/lib/api';
+
+import { successResponse, withRepositories } from '@/lib/api';
 import { withCache } from '@/lib/cache/client';
 
 export async function GET(request: NextRequest) {
-  return withRepositories(request, async repos => {
+  return withRepositories(request, async (repos) => {
     const users = await repos.users.findAll('asc');
 
     const posts = await withCache(
@@ -176,7 +178,8 @@ const data = await withCache(
 
 ```typescript
 // __tests__/lib/my-feature.test.ts
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
 import { myFunction } from '@/lib/my-feature';
 
 describe('My Feature', () => {

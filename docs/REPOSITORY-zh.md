@@ -42,6 +42,7 @@ lib/db/
 ```typescript
 // repositories/user.repository.ts
 import { PrismaClient } from '@prisma/client';
+
 import { DatabaseQueryError } from '@/lib/errors';
 
 export class UserRepository {
@@ -81,7 +82,7 @@ export class UserRepository {
 import { withRepositories } from '@/lib/api';
 
 export async function POST(request: NextRequest) {
-  return withRepositories(request, async repos => {
+  return withRepositories(request, async (repos) => {
     // 1) 解析请求
     const { email, name } = await request.json();
 
@@ -183,6 +184,9 @@ async create(data: { email: string; name?: string }) {
 提供统一访问入口：
 
 ```typescript
+// Usage
+import { createRepositories } from '@/repositories';
+
 // repositories/index.ts
 export class RepositoryFactory {
   constructor(private prisma: PrismaClient) {}
@@ -194,8 +198,6 @@ export class RepositoryFactory {
   }
 }
 
-// Usage
-import { createRepositories } from '@/repositories';
 const repos = createRepositories(prisma);
 const users = await repos.users.findAll();
 const posts = await repos.posts.findByUserId(1);
@@ -263,7 +265,7 @@ export async function GET(request: NextRequest) {
 
 // 新方式：withRepositories
 export async function GET(request: NextRequest) {
-  return withRepositories(request, async repos => {
+  return withRepositories(request, async (repos) => {
     const users = await repos.users.findAll();
     return successResponse(users);
   });
@@ -274,7 +276,7 @@ export async function GET(request: NextRequest) {
 
 ```typescript
 export async function GET(request: NextRequest) {
-  return withRepositories(request, async repos => {
+  return withRepositories(request, async (repos) => {
     const p = request.nextUrl.searchParams;
     const page = parseInt(p.get('page') || '1', 10);
     const limit = parseInt(p.get('limit') || '10', 10);
@@ -341,6 +343,9 @@ async create(data) {
 新增一个 Repository：
 
 ```typescript
+// 4. 使用
+import { createRepositories } from '@/repositories';
+
 // 1. 新增 Repository 类
 export class CommentRepository {
   constructor(private prisma: PrismaClient) {}
@@ -363,8 +368,6 @@ export class RepositoryFactory {
 // 3. 导出
 export { CommentRepository } from './comment.repository';
 
-// 4. 使用
-import { createRepositories } from '@/repositories';
 const repos = createRepositories(prisma);
 const comments = await repos.comments.findAll();
 ```
