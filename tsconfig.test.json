@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // 测试文件中放宽一些限制
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+
+    // 包含测试相关类型
+    "types": ["@cloudflare/workers-types", "vitest/globals", "@testing-library/jest-dom", "node"]
+  },
+  "include": [
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "__tests__/**/*",
+    "vitest.config.ts",
+    "vitest.setup.ts"
+  ],
+  "exclude": ["node_modules", ".next", "dist", "build"]
+}

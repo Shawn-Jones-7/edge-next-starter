@@ -1,0 +1,259 @@
+rules:
+  # ==================================================
+  # React/Next.js 安全规则
+  # ==================================================
+
+  # 1. 禁止 dangerouslySetInnerHTML 使用（除非有明确的 sanitize）
+  - id: dangerous-set-inner-html
+    pattern: dangerouslySetInnerHTML
+    message: |
+      检测到 dangerouslySetInnerHTML 使用。这可能导致 XSS 攻击。
+      请确保内容已经过适当的消毒处理（使用 DOMPurify 等库）。
+    severity: WARNING
+    languages:
+      - typescript
+      - javascript
+    paths:
+      include:
+        - "*.tsx"
+        - "*.jsx"
+        - "*.ts"
+        - "*.js"
+
+  # 2. 硬编码的 API keys/secrets
+  - id: hardcoded-secret
+    patterns:
+      - pattern-regex: (api_key|apikey|api-key|secret|password|token|auth)\s*[:=]\s*["'][^"']{8,}["']
+    message: |
+      检测到可能的硬编码密钥或敏感信息。
+      请使用环境变量（process.env.XXX）存储敏感信息。
+    severity: ERROR
+    languages:
+      - typescript
+      - javascript
+    paths:
+      include:
+        - "*.ts"
+        - "*.tsx"
+        - "*.js"
+        - "*.jsx"
+      exclude:
+        - "**/*.test.*"
+        - "**/*.spec.*"
+        - "__tests__/**"
+
+  # 3. 不安全的随机数生成（应使用 crypto.randomBytes）
+  - id: insecure-random
+    pattern: Math.random()
+    message: |
+      检测到 Math.random() 用于可能需要加密安全的场景。
+      对于安全相关的随机数，请使用 crypto.randomBytes() 或 crypto.getRandomValues()。
+    severity: WARNING
+    languages:
+      - typescript
+      - javascript
+    paths:
+      include:
+        - "lib/**"
+        - "services/**"
+        - "app/api/**"
+
+  # 4. SQL 注入风险（字符串拼接的 SQL 查询）
+  - id: sql-injection-risk
+    patterns:
+      - pattern: $QUERY = "..." + $INPUT + "..."
+      - pattern: $QUERY = `...${$INPUT}...`
+      - pattern-inside: |
+          function $FUNC(...) {
+            ...
+            $DB.$METHOD($QUERY)
+            ...
+          }
+    message: |
+      检测到可能的 SQL 注入风险。
+      请使用参数化查询或 ORM（如 Prisma）来构建数据库查询。
+    severity: ERROR
+    languages:
+      - typescript
+      - javascript
+    paths:
+      include:
+        - "repositories/**"
+        - "services/**"
+
+  # 5. Server Actions 中使用 eval
+  - id: server-action-eval
+    pattern: eval($ARG)
+    message: |
+      检测到在 Server Actions 中使用 eval()。
+      这是严重的安全风险，可能导致远程代码执行。请立即移除。
+    severity: ERROR
+    languages:
+      - typescript
+      - javascript
+    paths:
+      include:
+        - "app/**/actions/**"
+        - "app/api/**"
+
+  # 6. 环境变量泄露到日志
+  - id: env-var-logging
+    patterns:
+      - pattern: console.log(..., process.env.$VAR, ...)
+      - pattern: console.error(..., process.env.$VAR, ...)
+      - pattern: console.warn(..., process.env.$VAR, ...)
+      - pattern: logger.$METHOD(..., process.env.$VAR, ...)
+    message: |
+      检测到将环境变量输出到日志。
+      这可能导致敏感信息泄露。请避免直接记录环境变量。
+    severity: ERROR
+    languages:
+      - typescript
+      - javascript
+
+  # 7. 不安全的对象属性访问（Object Injection）
+  - id: object-injection
+    patterns:
+      - pattern: $OBJ[$USER_INPUT]
+      - metavariable-pattern:
+          metavariable: $USER_INPUT
+          patterns:
+            - pattern-not: "..."
+            - pattern-not: |
+                $CONST
+    message: |
+      检测到使用用户输入作为对象属性访问器。
+      这可能导致原型污染攻击。请验证和清理用户输入。
+    severity: WARNING
+    languages:
+      - typescript
+      - javascript
+    paths:
+      include:
+        - "app/api/**"
+        - "services/**"
+
+  # 8. 不安全的 innerHTML 赋值
+  - id: unsafe-innerhtml
+    pattern: $EL.innerHTML = $EXPR
+    message: |
+      检测到直接设置 innerHTML。
+      这可能导致 XSS 攻击。请使用 textContent 或进行适当的消毒处理。
+    severity: WARNING
+    languages:
+      - typescript
+      - javascript
+    paths:
+      include:
+        - "*.tsx"
+        - "*.jsx"
+        - "*.ts"
+        - "*.js"
+
+  # 9. 不安全的重定向
+  - id: unsafe-redirect
+    patterns:
+      - pattern: redirect($USER_INPUT)
+      - pattern: window.location = $USER_INPUT
+      - pattern: window.location.href = $USER_INPUT
+    message: |
+      检测到使用用户输入进行重定向。
+      这可能导致开放重定向漏洞。请验证重定向 URL 是否在白名单内。
+    severity: ERROR
+    languages:
+      - typescript
+      - javascript
+
+  # 10. 缺少 CSRF 保护的表单
+  - id: missing-csrf-token
+    pattern: |
+      <form method="POST" ...>
+        ...
+      </form>
+    message: |
+      检测到 POST 表单可能缺少 CSRF 保护。
+      对于 Next.js，请确保使用 Server Actions 或实现适当的 CSRF 令牌验证。
+    severity: WARNING
+    languages:
+      - typescript
+      - javascript
+    paths:
+      include:
+        - "*.tsx"
+        - "*.jsx"
+
+  # 11. 使用已弃用的 Next.js API
+  - id: deprecated-nextjs-api
+    patterns:
+      - pattern: getInitialProps
+      - pattern: getServerSideProps
+      - pattern: getStaticProps
+    message: |
+      检测到使用 Next.js Pages Router API（getInitialProps/getServerSideProps/getStaticProps）。
+      在 App Router 中，请使用 Server Components 或 Server Actions。
+    severity: INFO
+    languages:
+      - typescript
+      - javascript
+    paths:
+      include:
+        - "app/**/*.tsx"
+
+  # 12. 不安全的正则表达式（ReDoS）
+  - id: unsafe-regex
+    pattern-regex: /(.*\+.*\+|.*\*.*\*|\(.*\|.*\)\+)/
+    message: |
+      检测到可能导致 ReDoS（正则表达式拒绝服务）的模式。
+      请简化正则表达式或添加输入长度限制。
+    severity: WARNING
+    languages:
+      - typescript
+      - javascript
+
+  # 13. 不安全的 JSON.parse
+  - id: unsafe-json-parse
+    pattern: JSON.parse($USER_INPUT)
+    message: |
+      检测到直接解析用户输入的 JSON。
+      请使用 zod 或其他验证库先验证数据结构。
+    severity: WARNING
+    languages:
+      - typescript
+      - javascript
+    paths:
+      include:
+        - "app/api/**"
+        - "services/**"
+
+  # 14. Next.js 响应头安全检查
+  - id: missing-security-headers
+    pattern: |
+      export const $CONFIG = {
+        ...
+      }
+    message: |
+      请确保在 next.config.ts 中配置了适当的安全响应头：
+      - X-Frame-Options
+      - X-Content-Type-Options
+      - Referrer-Policy
+      - Permissions-Policy
+    severity: INFO
+    languages:
+      - typescript
+    paths:
+      include:
+        - "next.config.*"
+
+  # 15. Cloudflare Workers 特有的安全规则
+  - id: workers-unsafe-binding-access
+    pattern: $ENV.$BINDING
+    message: |
+      检测到访问 Cloudflare Workers 绑定。
+      请确保不会将绑定对象暴露给客户端代码。
+    severity: INFO
+    languages:
+      - typescript
+      - javascript
+    paths:
+      include:
+        - "app/api/**"

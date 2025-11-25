@@ -1,0 +1,65 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "entry": [
+    "app/**/*.{ts,tsx}!",
+    "app/**/page.tsx!",
+    "app/**/layout.tsx!",
+    "app/**/loading.tsx!",
+    "app/**/error.tsx!",
+    "app/**/not-found.tsx!",
+    "app/**/route.ts!",
+    "app/api/**/*.ts!",
+    "middleware.ts",
+    "next.config.ts",
+    "vitest.config.ts",
+    "vitest.setup.ts"
+  ],
+  "project": [
+    "**/*.{ts,tsx,js,jsx}!",
+    "!node_modules/**",
+    "!.next/**",
+    "!dist/**",
+    "!build/**",
+    "!coverage/**"
+  ],
+  "ignore": [
+    "**/*.test.{ts,tsx,js,jsx}",
+    "**/*.spec.{ts,tsx,js,jsx}",
+    "__tests__/**",
+    "**/*.d.ts",
+    "**/*.config.{js,ts,mjs}",
+    "scripts/**",
+    "migrations/**",
+    ".next/**",
+    "node_modules/**",
+    ".git/**",
+    ".git",
+    ".serena/**",
+    ".husky/**"
+  ],
+  "ignoreDependencies": [
+    "@cloudflare/next-on-pages",
+    "@cloudflare/workers-types",
+    "wrangler",
+    "prisma",
+    "@types/*",
+    "eslint",
+    "prettier",
+    "typescript",
+    "lefthook",
+    "@commitlint/cli",
+    "@commitlint/config-conventional"
+  ],
+  "ignoreBinaries": ["wrangler", "prisma", "next", "eslint", "prettier", "tsc"],
+  "next": {
+    "entry": ["app/**/*.{ts,tsx}!", "middleware.ts", "next.config.ts"]
+  },
+  "vitest": {
+    "entry": ["vitest.config.ts", "vitest.setup.ts"]
+  },
+  "playwright": {
+    "entry": ["**/*.spec.ts"]
+  },
+  "lefthook": false,
+  "husky": false
+}

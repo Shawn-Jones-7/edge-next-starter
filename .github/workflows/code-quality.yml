@@ -1,0 +1,225 @@
+name: 🔍 Code Quality
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+
+# 取消进行中的重复工作流
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '8'
+
+jobs:
+  # ==================================================
+  # Job 1: 代码质量检查
+  # ==================================================
+  code-quality:
+    name: 📊 Code Quality Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 🏗️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 📚 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🎨 Format check
+        run: pnpm format:check
+
+      - name: 🔍 Lint check
+        run: pnpm lint:check
+
+      - name: 🔧 TypeScript check (main)
+        run: pnpm type-check
+
+      - name: 🧪 TypeScript check (tests)
+        run: pnpm type-check:tests
+
+      - name: 📊 Upload quality report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-report
+          path: |
+            reports/
+            coverage/
+          retention-days: 7
+
+  # ==================================================
+  # Job 2: 安全审计
+  # ==================================================
+  security-audit:
+    name: 🔒 Security Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 🏗️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 📚 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔐 Dependency audit
+        run: pnpm security:audit
+        continue-on-error: true
+
+      - name: 🔍 Semgrep scan
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: semgrep.yml
+        continue-on-error: true
+
+      - name: 🏗️ Architecture check
+        run: pnpm arch:check
+        continue-on-error: true
+
+      - name: 🔄 Circular dependency check
+        run: pnpm circular:check
+        continue-on-error: true
+
+  # ==================================================
+  # Job 3: 测试
+  # ==================================================
+  test:
+    name: 🧪 Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 🏗️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 📚 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🧪 Run tests
+        run: pnpm test
+
+      - name: 📊 Generate coverage report
+        run: pnpm test:coverage
+        continue-on-error: true
+
+      - name: 📤 Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
+
+  # ==================================================
+  # Job 4: 构建验证
+  # ==================================================
+  build:
+    name: 🔨 Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [code-quality, test]
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 🏗️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 📚 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔨 Build project
+        run: pnpm build
+        env:
+          # 添加必要的环境变量
+          SKIP_ENV_VALIDATION: true
+
+      - name: 📤 Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: .next/
+          retention-days: 1
+
+  # ==================================================
+  # Job 5: 未使用代码检测（可选）
+  # ==================================================
+  unused-code:
+    name: 🗑️ Unused Code Detection
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 🏗️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 📚 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔍 Check unused code
+        run: pnpm unused:check
+        continue-on-error: true

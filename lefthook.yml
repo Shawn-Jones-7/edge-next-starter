@@ -1,0 +1,146 @@
+# ==================================================
+# Lefthook - 企业级 Git Hooks 配置
+# 文档: https://lefthook.dev/configuration/
+# ==================================================
+
+# 全局设置
+colors: true
+no_tty: false
+
+# ==================================================
+# PRE-COMMIT: 本地提交前的快速检查
+# 目标：捕获基本格式、类型和代码质量问题
+# ==================================================
+pre-commit:
+  parallel: false # 按顺序执行，便于定位问题
+  commands:
+    # 1. 格式检查 - Prettier
+    format-check:
+      tags:
+        - frontend
+        - formatting
+      run: pnpm format:check
+      fail_text: '格式检查失败。运行 pnpm format:write 修复格式问题。'
+
+    # 2. 类型检查 - TypeScript
+    type-check:
+      tags:
+        - frontend
+        - typescript
+      run: pnpm type-check
+      fail_text: '类型检查失败。请修复 TypeScript 类型错误。'
+
+    # 3. ESLint 检查
+    lint-check:
+      tags:
+        - frontend
+        - quality
+      glob: '*.{js,jsx,ts,tsx}'
+      run: pnpm lint
+      fail_text: 'ESLint 检查失败。运行 pnpm lint --fix 尝试自动修复。'
+
+    # 4. 架构守卫 - 禁止不良导入模式
+    architecture-guard:
+      tags:
+        - architecture
+      run: |
+        echo "检查架构规则..."
+        # 检查是否有新增的 export * from
+        if git diff --cached --name-only | grep -E '\.(ts|tsx|js|jsx)$' | xargs grep -l "export \* from" 2>/dev/null | grep -v "types/" | grep -v "constants/"; then
+          echo "❌ 发现禁止的 'export * from' 语句（types/ 和 constants/ 目录除外）"
+          echo "请显式导出需要的内容，或将文件移至 types/ 或 constants/ 目录"
+          exit 1
+        fi
+        # 检查是否有跨目录相对导入 ../
+        if git diff --cached --name-only | grep -E '\.(ts|tsx|js|jsx)$' | xargs grep -l "from ['\"]\\.\\./" 2>/dev/null | grep -v "test\|spec"; then
+          echo "❌ 发现禁止的相对路径导入 '../'（测试文件除外）"
+          echo "请使用 @/ 别名导入"
+          exit 1
+        fi
+        echo "✅ 架构规则检查通过"
+      fail_text: '架构守卫失败。请遵循项目架构规范。'
+
+# ==================================================
+# COMMIT-MSG: 提交信息规范检查
+# 目标：确保提交信息遵循 Conventional Commits
+# ==================================================
+commit-msg:
+  commands:
+    commitlint:
+      tags:
+        - commitlint
+      run: pnpm commitlint --edit {1}
+      fail_text: |
+        提交信息格式错误。请遵循 Conventional Commits 规范：
+
+        格式: <type>(<scope>): <subject>
+
+        type: feat, fix, docs, style, refactor, test, chore, perf, ci, build, revert
+        scope: 可选，影响范围
+        subject: 简短描述
+
+        示例:
+        - feat(auth): add login functionality
+        - fix(api): resolve CORS issue
+        - docs: update README
+
+# ==================================================
+# PRE-PUSH: 推送前的完整质量门禁
+# 目标：确保推送的代码符合所有质量标准
+# ==================================================
+pre-push:
+  parallel: false
+  commands:
+    # 1. 构建检查
+    build-check:
+      tags:
+        - build
+      run: |
+        if [ "$RUN_FAST_PUSH" = "1" ]; then
+          echo "⚡ RUN_FAST_PUSH=1，跳过构建检查"
+          exit 0
+        fi
+        echo "🔨 构建检查..."
+        pnpm build
+      fail_text: '构建失败。请修复构建错误后再推送。设置 RUN_FAST_PUSH=1 可临时跳过。'
+
+    # 2. 测试检查
+    test-check:
+      tags:
+        - test
+      run: |
+        echo "🧪 运行测试..."
+        pnpm test
+      fail_text: '测试失败。请确保所有测试通过后再推送。'
+
+    # 3. 循环依赖检查
+    circular-check:
+      tags:
+        - architecture
+      run: |
+        echo "🔍 检查循环依赖..."
+        pnpm circular:check || true
+      fail_text: '发现循环依赖。请解决后再推送。'
+
+    # 4. 安全审计
+    security-check:
+      tags:
+        - security
+      run: |
+        echo "🔒 安全审计..."
+        pnpm security:audit
+      fail_text: '发现安全漏洞。请运行 pnpm update 更新依赖后再推送。'
+
+# ==================================================
+# POST-MERGE: 合并后的自动化任务
+# ==================================================
+post-merge:
+  commands:
+    install-deps:
+      tags:
+        - dependencies
+      files: git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD
+      glob: '{package.json,pnpm-lock.yaml}'
+      run: |
+        echo "📦 检测到依赖变化，自动安装..."
+        pnpm install
