@@ -23,7 +23,7 @@ const nextConfig: NextConfig = {
   },
 
   // Webpack configuration
-  webpack: (config, { isServer, webpack }) => {
+  webpack: (config, { isServer }) => {
     if (isServer) {
       config.externals = [...(config.externals || []), 'better-sqlite3'];
     }
@@ -34,18 +34,10 @@ const nextConfig: NextConfig = {
       ...config.resolve.alias,
       // Polyfill or exclude async_hooks for edge runtime
       async_hooks: false,
-      // Ignore @react-email/render to prevent Html component import errors
-      // We use custom HTML generation instead of React Email
-      '@react-email/render': false,
+      // Point @react-email/render to a fake module to prevent Html import errors
+      // resend has this as an optional peer dependency but we don't use it
+      '@react-email/render': path.resolve(__dirname, 'lib/email/fake-react-email.js'),
     };
-
-    // Add plugin to ignore optional @react-email/render imports from resend
-    config.plugins.push(
-      new webpack.IgnorePlugin({
-        resourceRegExp: /@react-email\/render/,
-        contextRegExp: /resend/,
-      })
-    );
 
     return config;
   },

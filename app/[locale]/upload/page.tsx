@@ -18,6 +18,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 
+// Force dynamic rendering for this client-heavy page
+export const dynamic = 'force-dynamic';
+
 export default function UploadPage() {
   const t = useTranslations();
   const [files, setFiles] = useState<FileList | null>(null);

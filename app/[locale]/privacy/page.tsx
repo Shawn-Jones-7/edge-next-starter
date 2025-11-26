@@ -5,10 +5,12 @@
 
 import { Link } from '@/i18n/navigation';
 import { routing, type Locale } from '@/i18n/routing';
-import { useTranslations } from 'next-intl';
-import { setRequestLocale } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+// Force dynamic rendering to avoid SSG issues with i18n navigation
+export const dynamic = 'force-dynamic';
 
 // Generate static params for all supported locales
 export function generateStaticParams() {
@@ -19,16 +21,12 @@ interface PrivacyPageProps {
   params: Promise<{ locale: string }>;
 }
 
+// eslint-disable-next-line complexity
 export default async function PrivacyPolicyPage({ params }: PrivacyPageProps) {
   const { locale } = await params;
   setRequestLocale(locale as Locale);
 
-  return <PrivacyContent locale={locale as Locale} />;
-}
-
-// eslint-disable-next-line complexity
-function PrivacyContent({ locale }: { locale: Locale }) {
-  const t = useTranslations();
+  const t = await getTranslations();
 
   const lastUpdated = new Date().toLocaleDateString(locale === 'zh' ? 'zh-CN' : 'en-US', {
     year: 'numeric',
