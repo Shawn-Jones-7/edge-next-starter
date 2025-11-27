@@ -1,10 +1,24 @@
 name: Deploy to Test Environment
 
+# Temporarily disabled - enable when ready to deploy to Cloudflare Pages
+# Prerequisites:
+# 1. Add 'export const runtime = "edge"' to all routes (required by @cloudflare/next-on-pages)
+# 2. Configure CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets
+# 3. Set up D1 database and R2 storage bindings
+# 4. Uncomment the triggers below
+
 on:
-  workflow_run:
-    workflows: ['CI']
-    types: [completed]
-    branches: [develop, preview]
+  # workflow_run:
+  #   workflows: ['CI']
+  #   types: [completed]
+  #   branches: [develop, preview]
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Confirm deployment (requires Edge Runtime setup)'
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -15,7 +29,8 @@ jobs:
   deploy-test:
     name: Deploy to Cloudflare Pages (Test)
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    # Only run if: (1) CI workflow succeeded, or (2) manual dispatch with confirmation
+    if: ${{ github.event.workflow_run.conclusion == 'success' || (github.event_name == 'workflow_dispatch' && github.event.inputs.confirm == 'true') }}
     environment:
       name: test
       url: ${{ vars.TEST_DEPLOYMENT_URL || 'https://test.your-domain.com' }}
