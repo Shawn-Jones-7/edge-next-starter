@@ -14,7 +14,6 @@ const nextConfig: NextConfig = {
   // Disable static optimization to avoid prerender errors with @react-email
   poweredByHeader: false,
   compress: true,
-  swcMinify: true,
 
   // Ensure compatibility with Cloudflare Pages
   images: {
