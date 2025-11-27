@@ -102,16 +102,5 @@ jobs:
           NODE_ENV: production
           CI: true
         run: pnpm run build
-
-      - name: Build for Cloudflare Pages
-        env:
-          NODE_ENV: production
-          CI: true
-        run: pnpm run pages:build
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-artifacts
-          path: .vercel/output/static
-          retention-days: 30
+        # Note: Cloudflare Pages builds are handled by Cloudflare's GitHub integration
+        # No need to run pages:build here as it's redundant
