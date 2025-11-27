@@ -16,11 +16,13 @@ import {
   type ApiResponse,
 } from '@/lib/api/response';
 import { createPrismaClient } from '@/lib/db/client';
-import { getEmailService } from '@/lib/email/resend';
 import { AppError, ErrorType } from '@/lib/errors';
 import { logger } from '@/lib/logger';
 
 export const runtime = 'edge';
+
+const MESSAGE_MIN_LENGTH = 10;
+const MESSAGE_MAX_LENGTH = 5000;
 
 /**
  * Contact form validation schema
@@ -31,7 +33,10 @@ const contactFormSchema = z.object({
   phone: z.string().max(30).optional().nullable(),
   company: z.string().max(100).optional().nullable(),
   subject: z.string().max(200).optional().nullable(),
-  message: z.string().min(10, 'Message must be at least 10 characters').max(5000),
+  message: z
+    .string()
+    .min(MESSAGE_MIN_LENGTH, 'Message must be at least 10 characters')
+    .max(MESSAGE_MAX_LENGTH),
   locale: z.enum(['en', 'zh']).optional().nullable(),
 });
 
@@ -92,25 +97,34 @@ export function POST(request: NextRequest) {
       });
 
       // Send email notification (async, don't block response)
-      const emailService = getEmailService();
-      if (emailService.isConfigured()) {
-        // Fire and forget - don't await to avoid blocking the response
-        emailService
-          .sendContactNotification({
-            name: data.name,
-            email: data.email,
-            phone: data.phone,
-            company: data.company,
-            subject: data.subject,
-            message: data.message,
-            locale: data.locale,
-            submittedAt: new Date(),
-          })
-          .catch((err: unknown) => {
-            const error = err instanceof Error ? err : new Error(String(err));
-            logger.error('Failed to send email notification', error);
-          });
+      // TEMPORARILY DISABLED: Email functionality disabled to resolve build issues
+      // TODO: Re-enable email functionality after @react-email/render issue is resolved
+      /*
+      try {
+        const { getEmailService } = await import('@/lib/email/resend');
+        const emailService = getEmailService();
+        if (emailService.isConfigured()) {
+          emailService
+            .sendContactNotification({
+              name: data.name,
+              email: data.email,
+              phone: data.phone,
+              company: data.company,
+              subject: data.subject,
+              message: data.message,
+              locale: data.locale,
+              submittedAt: new Date(),
+            })
+            .catch((err: unknown) => {
+              const error = err instanceof Error ? err : new Error(String(err));
+              logger.error('Failed to send email notification', error);
+            });
+        }
+      } catch (err: unknown) {
+        // Log but don't fail the request
+        logger.warn('Email service not available', err instanceof Error ? err.message : String(err));
       }
+      */
 
       return createdResponse(
         {

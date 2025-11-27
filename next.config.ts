@@ -11,16 +11,25 @@ const nextConfig: NextConfig = {
   // This fixes the MissingSecret error caused by next-auth in parent node_modules
   outputFileTracingRoot: path.join(__dirname, './'),
 
-  // Enable experimental features for Cloudflare
-  experimental: {
-    // Runtime configuration for Cloudflare Workers
-  },
+  // Disable static optimization to avoid prerender errors with @react-email
+  poweredByHeader: false,
+  compress: true,
+  swcMinify: true,
 
   // Ensure compatibility with Cloudflare Pages
   images: {
     // Disable image optimization for Cloudflare (use Cloudflare Image Resizing)
     unoptimized: true,
   },
+
+  // Enable experimental features for Cloudflare
+  experimental: {
+    // Runtime configuration for Cloudflare Workers
+    ppr: false, // Disable Partial Prerendering
+  },
+
+  // Disable static page generation
+  output: 'standalone',
 
   // Webpack configuration
   webpack: (config, { isServer }) => {
@@ -30,14 +39,26 @@ const nextConfig: NextConfig = {
 
     // Fix for Cloudflare Workers: exclude Node.js built-in modules
     config.resolve = config.resolve || {};
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      async_hooks: false,
+    };
+
+    // Block @react-email imports completely by making them return an empty module
     config.resolve.alias = {
       ...config.resolve.alias,
-      // Polyfill or exclude async_hooks for edge runtime
-      async_hooks: false,
-      // Point @react-email/render to a fake module to prevent Html import errors
-      // resend has this as an optional peer dependency but we don't use it
-      '@react-email/render': path.resolve(__dirname, 'lib/email/fake-react-email.js'),
+      '@react-email/render': false,
+      '@react-email/components': false,
+      'react-email': false,
     };
+
+    // Ignore warnings for @react-email modules
+    config.ignoreWarnings = [
+      ...(config.ignoreWarnings || []),
+      {
+        module: /@react-email/,
+      },
+    ];
 
     return config;
   },

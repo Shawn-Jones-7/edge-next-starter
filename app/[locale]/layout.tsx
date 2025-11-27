@@ -18,21 +18,19 @@ export function generateStaticParams() {
 export async function generateMetadata(props: { params: Promise<{ locale: string }> }) {
   const { locale } = await props.params;
 
-  const titles: Record<Locale, string> = {
-    en: 'B2B Enterprise - Enterprise Solutions',
-    zh: 'B2B 企业 - 企业解决方案',
-  };
+  const validLocale: Locale = hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
 
-  const descriptions: Record<Locale, string> = {
-    en: 'Your trusted B2B partner for enterprise solutions',
-    zh: '您值得信赖的企业解决方案合作伙伴',
-  };
+  const title =
+    validLocale === 'zh' ? 'B2B 企业 - 企业解决方案' : 'B2B Enterprise - Enterprise Solutions';
 
-  const validLocale = hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
+  const description =
+    validLocale === 'zh'
+      ? '您值得信赖的企业解决方案合作伙伴'
+      : 'Your trusted B2B partner for enterprise solutions';
 
   return {
-    title: titles[validLocale],
-    description: descriptions[validLocale],
+    title,
+    description,
   };
 }
 

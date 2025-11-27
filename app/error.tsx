@@ -5,8 +5,11 @@
 
 'use client';
 
-import Link from 'next/link';
 import { useEffect } from 'react';
+import Link from 'next/link';
+
+// Force dynamic rendering to avoid SSG errors with react-email dependencies
+export const dynamic = 'force-dynamic';
 
 export default function Error({
   error,
@@ -30,7 +33,7 @@ export default function Error({
         <p className="mt-4 text-gray-600 dark:text-gray-400">
           We&apos;re sorry, but something unexpected happened.
         </p>
-        <div className="mt-8 flex gap-4 justify-center">
+        <div className="mt-8 flex justify-center gap-4">
           <button
             onClick={reset}
             className="inline-flex items-center rounded-lg bg-primary px-6 py-3 text-white transition-colors hover:bg-primary/90"
