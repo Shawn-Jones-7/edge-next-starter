@@ -53,5 +53,4 @@ worker-configuration.d.ts
 .tmp-migration.sql
 
 .claude
-CLAUDE.md
 AGENTS.md

@@ -5,10 +5,12 @@
 
 import { Link } from '@/i18n/navigation';
 import { routing, type Locale } from '@/i18n/routing';
-import { useTranslations } from 'next-intl';
-import { setRequestLocale } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { Button } from '@/components/ui/button';
+
+// Force dynamic rendering to avoid SSG issues with i18n navigation
+export const dynamic = 'force-dynamic';
 
 // Generate static params for all supported locales
 export function generateStaticParams() {
@@ -25,11 +27,7 @@ export default async function HomePage({ params }: HomePageProps) {
   // Enable static rendering
   setRequestLocale(locale as Locale);
 
-  return <HomeContent />;
-}
-
-function HomeContent() {
-  const t = useTranslations();
+  const t = await getTranslations();
 
   return (
     <div className="flex min-h-screen flex-col p-8">
