@@ -18,8 +18,6 @@ import { checkRateLimit } from '@/lib/rate-limiter';
 import { createSignedDownloadUrl, verifySignedUrl } from '@/lib/signed-url';
 import { getAdjustedRateLimit, getClientIdentifier } from '@/lib/utils/client-identifier';
 
-export const runtime = 'edge';
-
 // Max file size (10MB)
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 

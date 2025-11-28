@@ -4,12 +4,14 @@ import { afterEach, vi } from 'vitest';
 
 import '@testing-library/jest-dom/vitest';
 
-vi.mock('@cloudflare/next-on-pages', () => ({
-  getRequestContext: () => ({
-    env: {},
-    request: null,
-    waitUntil: () => undefined,
-  }),
+vi.mock('@opennextjs/cloudflare', () => ({
+  getCloudflareContext: () =>
+    Promise.resolve({
+      env: {},
+      ctx: {
+        waitUntil: vi.fn(),
+      },
+    }),
 }));
 
 // Clean up React components after each test

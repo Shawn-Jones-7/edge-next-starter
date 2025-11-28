@@ -54,12 +54,13 @@ module.exports = {
       },
       to: {
         dependencyTypes: ['npm-dev'],
-        // Exceptions: @types (type definitions), @cloudflare/next-on-pages (runtime API for Cloudflare Pages)
+        // Exceptions: @types (type definitions), Cloudflare runtime APIs
         pathNot: [
           'node_modules/@types/',
           'node_modules/@testing-library',
           'node_modules/vitest',
           'node_modules/.*@cloudflare/next-on-pages',
+          'node_modules/@opennextjs/cloudflare',
         ],
       },
     },

@@ -19,8 +19,6 @@ import { createPrismaClient } from '@/lib/db/client';
 import { AppError, ErrorType } from '@/lib/errors';
 import { logger } from '@/lib/logger';
 
-export const runtime = 'edge';
-
 const MESSAGE_MIN_LENGTH = 10;
 const MESSAGE_MAX_LENGTH = 5000;
 

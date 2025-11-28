@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+.open-next/
+out/
+build/
+dist/
+coverage/
+
+# Cloudflare
+.wrangler/
+.mf/
+
+# Conductor (disabled)
+.conductor/
+
+# Generated files
+next-env.d.ts
+*.tsbuildinfo
+
+# Lock files
+pnpm-lock.yaml
+package-lock.json
+yarn.lock

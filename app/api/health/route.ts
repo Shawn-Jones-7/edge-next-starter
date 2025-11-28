@@ -5,8 +5,6 @@ import { getKVNamespace } from '@/lib/cache/client';
 import { getDatabase } from '@/lib/db/client';
 import { getR2Bucket } from '@/lib/r2/client';
 
-export const runtime = 'edge';
-
 interface HealthStatus {
   status: 'healthy' | 'degraded' | 'unhealthy';
   timestamp: string;

@@ -8,6 +8,7 @@ coverage/
 
 # Next.js
 .next/
+.open-next/
 out/
 build/
 dist/
@@ -54,3 +55,6 @@ worker-configuration.d.ts
 
 .claude
 AGENTS.md
+
+# Conductor (disabled)
+.conductor/

@@ -33,15 +33,18 @@ const SUBJECT_OPTIONS = ['product', 'support', 'partnership', 'pricing', 'other'
 // Form schema factory - creates schema with translated error messages
 function createFormSchema(t: (key: string) => string) {
   return z.object({
-    name: z.string().min(1, t('contact.form.nameRequired')),
-    email: z.string().min(1, t('contact.form.emailRequired')).email(t('contact.form.emailInvalid')),
+    name: z.string().min(1, { message: t('contact.form.nameRequired') }),
+    email: z
+      .string()
+      .min(1, { message: t('contact.form.emailRequired') })
+      .email({ message: t('contact.form.emailInvalid') }),
     phone: z.string().optional(),
     company: z.string().optional(),
-    subject: z.enum(SUBJECT_OPTIONS, t('contact.form.subjectRequired')),
+    subject: z.enum(SUBJECT_OPTIONS, { message: t('contact.form.subjectRequired') }),
     message: z
       .string()
-      .min(1, t('contact.form.messageRequired'))
-      .min(10, t('contact.form.messageMinLength')),
+      .min(1, { message: t('contact.form.messageRequired') })
+      .min(10, { message: t('contact.form.messageMinLength') }),
   });
 }
 

@@ -29,6 +29,9 @@ const eslintConfig = [
     ignores: [
       '**/node_modules/**',
       '**/.next/**',
+      '**/.open-next/**',
+      '**/.wrangler/**',
+      '**/.conductor/**',
       '**/dist/**',
       '**/build/**',
       '**/coverage/**',

@@ -1,4 +1,4 @@
-import { getRequestContext } from '@cloudflare/next-on-pages';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 import { CloudflareEnv } from '@/types/cloudflare';
 import { env } from '@/lib/config/env';
@@ -169,7 +169,7 @@ export class AnalyticsClient {
    * Track event to Analytics Engine
    */
   private async trackToEngine(event: AnalyticsEvent): Promise<void> {
-    const engine = getAnalyticsEngine();
+    const engine = await getAnalyticsEngine();
     if (!engine) {
       return this.trackToLog(event);
     }
@@ -403,18 +403,18 @@ export const analytics = new AnalyticsClient();
 
 /**
  * Get Analytics Engine binding (if configured)
- * Note: For Cloudflare Pages, we need to use getRequestContext() to access bindings
+ * Note: For Cloudflare with @opennextjs/cloudflare, we need to use getCloudflareContext() to access bindings
  */
-export function getAnalyticsEngine(): AnalyticsEngineDataset | null {
+export async function getAnalyticsEngine(): Promise<AnalyticsEngineDataset | null> {
   try {
-    // For Cloudflare Pages with @cloudflare/next-on-pages
-    // Use getRequestContext() to access bindings (only available in request context)
-    const { env: cloudflareEnv } = getRequestContext();
-    // Type assertion because getRequestContext() doesn't include our custom CloudflareEnv type
+    // For Cloudflare with @opennextjs/cloudflare
+    // Use getCloudflareContext() to access bindings (only available in request context)
+    const { env: cloudflareEnv } = await getCloudflareContext();
+    // Type assertion because getCloudflareContext() doesn't include our custom CloudflareEnv type
     const analytics = (cloudflareEnv as CloudflareEnv | undefined)?.ANALYTICS;
     return (analytics as unknown as AnalyticsEngineDataset) || null;
   } catch (error) {
-    // If getRequestContext fails (e.g., not in request context or local dev),
+    // If getCloudflareContext fails (e.g., not in request context or local dev),
     // try fallback to process.env for Workers or return null
     try {
       const env = getCloudflareEnv();
